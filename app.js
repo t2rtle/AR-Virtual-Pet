@@ -7,7 +7,7 @@ try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {
 const state = Object.assign({ name:'Mochi', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
 const basePetY = .05;
-const AR_PET_SCALE = 1.15;
+const AR_PET_SCALE = 0.34; // Papagaio em escala aproximada de 35–40 cm
 let placeButton, surfaceFound = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
@@ -18,16 +18,87 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
 function tone(){ if(!state.sound)return; try{const C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=520;g.gain.setValueAtTime(.035,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.12);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.12);o.onended=()=>c.close();}catch{} }
 
 function createPet(){
-  const group=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:0x9d8cff});
-  const belly=new THREE.Mesh(new THREE.SphereGeometry(.42,24,18),mat); belly.scale.set(1,.9,.82); group.add(belly);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.31,24,18),mat); head.position.y=.43; group.add(head);
-  const earGeo=new THREE.SphereGeometry(.13,16,12);
-  [-1,1].forEach(x=>{const e=new THREE.Mesh(earGeo,mat);e.position.set(x*.2,.64,0);e.scale.set(1,.9,.55);group.add(e);});
-  const eyeMat=new THREE.MeshBasicMaterial({color:0x11131a}),eyeGeo=new THREE.SphereGeometry(.035,12,8);
-  [-1,1].forEach(x=>{const e=new THREE.Mesh(eyeGeo,eyeMat);e.position.set(x*.105,.47,.285);group.add(e);});
-  const nose=new THREE.Mesh(new THREE.SphereGeometry(.04,12,8),new THREE.MeshBasicMaterial({color:0x332a3e}));nose.position.set(0,.39,.3);group.add(nose);
-  const footGeo=new THREE.SphereGeometry(.11,16,10);
-  [-.22,.22].forEach(x=>{const f=new THREE.Mesh(footGeo,mat);f.position.set(x,-.28,.15);f.scale.set(1,.7,1.2);group.add(f);});
+  const group = new THREE.Group();
+  const material = color => new THREE.MeshBasicMaterial({ color });
+  const green = material(0x20a85a);
+  const wingGreen = material(0x087b43);
+  const featherGreen = material(0x35c76b);
+  const red = material(0xe7473f);
+  const yellow = material(0xffc928);
+  const orange = material(0xff8a19);
+  const black = material(0x20212a);
+  const white = material(0xf5f1df);
+  const eyeBlack = material(0x11131a);
+
+  const oval = (name, colorMat, position, scale, segments=20) => {
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, segments, 14), colorMat);
+    mesh.name = name;
+    mesh.position.set(...position);
+    mesh.scale.set(...scale);
+    group.add(mesh);
+    return mesh;
+  };
+  const cylinder = (name, colorMat, radiusTop, radiusBottom, height, position, radial=20) => {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radial), colorMat);
+    mesh.name = name;
+    mesh.position.set(...position);
+    group.add(mesh);
+    return mesh;
+  };
+
+  // Round parrot body, with a red chest and a proud, slightly oversized head.
+  oval('Parrot body', green, [0, .39, 0], [.34, .43, .29]);
+  oval('Red chest', red, [0, .37, .247], [.235, .30, .075]);
+  oval('Parrot head', green, [0, .76, .015], [.285, .285, .265]);
+  oval('Red forehead', red, [0, .94, .075], [.19, .115, .205]);
+
+  // Curved-looking wings and layered tail feathers.
+  for (const side of [-1, 1]) {
+    const wing = oval('Wing', wingGreen, [side * .285, .43, -.015], [.12, .29, .20]);
+    wing.rotation.z = side * -.18;
+    oval('Wing highlight', featherGreen, [side * .325, .43, .13], [.065, .20, .07]);
+    const foot = oval('Golden foot', yellow, [side * .13, .075, .09], [.105, .065, .13]);
+    foot.rotation.z = side * .12;
+  }
+  for (let i = 0; i < 3; i++) {
+    const tail = oval('Tail feather', i === 1 ? red : wingGreen, [(i-1)*.105, .17, -.31], [.075, .28, .075]);
+    tail.rotation.x = -.28;
+    tail.rotation.z = (i-1)*.18;
+  }
+
+  // White eye patches, dark eyes and a hooked orange beak facing the camera.
+  for (const side of [-1, 1]) {
+    oval('Eye patch', white, [side * .105, .79, .244], [.085, .105, .045], 16);
+    oval('Eye', eyeBlack, [side * .105, .79, .284], [.043, .058, .025], 14);
+    oval('Eye sparkle', white, [side * .118, .812, .305], [.013, .016, .009], 10);
+  }
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(.105, .19, 5), orange);
+  beak.name = 'Parrot beak';
+  beak.position.set(0, .68, .31);
+  beak.rotation.x = Math.PI / 2;
+  group.add(beak);
+  oval('Lower beak', yellow, [0, .625, .29], [.085, .045, .065], 12);
+
+  // Tiny pirate hat: brim, crown, skull and crossed bones.
+  const brim = cylinder('Pirate hat brim', black, .30, .30, .055, [0, 1.025, .015], 24);
+  brim.scale.z = .78;
+  const crown = cylinder('Pirate hat crown', black, .205, .245, .19, [0, 1.135, .005], 24);
+  crown.scale.z = .76;
+  oval('Skull', white, [0, 1.14, .174], [.07, .062, .025], 12);
+  oval('Skull eye left', black, [-.025, 1.15, .197], [.012, .016, .008], 8);
+  oval('Skull eye right', black, [.025, 1.15, .197], [.012, .016, .008], 8);
+  // Crossbones as small white rods beneath the skull.
+  for (const side of [-1, 1]) {
+    const bone = cylinder('Crossbone', white, .012, .012, .12, [side * .018, 1.105, .19], 8);
+    bone.rotation.z = side * .72;
+  }
+
+  group.traverse(node => {
+    if (node.isMesh) {
+      node.frustumCulled = false;
+      node.renderOrder = 10;
+    }
+  });
   return group;
 }
 
@@ -94,9 +165,9 @@ function placePet(){
   // stands above the detected surface instead of intersecting the floor.
   const surface = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
   pet.scale.setScalar(AR_PET_SCALE);
-  const modelHeight = 1.14 * pet.scale.y;
+  // The parrot model is built from the floor upward, so place its feet directly on the detected surface.
   pet.position.copy(surface);
-  pet.position.y += modelHeight * 0.5 + 0.025;
+  pet.position.y += 0.012;
   pet.quaternion.identity();
   pet.renderOrder = 10;
 
