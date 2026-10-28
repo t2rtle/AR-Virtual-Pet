@@ -2,6 +2,8 @@
 
 Um jogo de pet virtual 3D pensado para celular, navegador e realidade aumentada.
 
+🌐 **Site do jogo:** [Jogar AR Virtual Pet](https://t2rtle.github.io/AR-Virtual-Pet/)
+
 ## O que já existe
 
 - 📷 Entrada em realidade aumentada com WebXR/ARCore quando suportada
