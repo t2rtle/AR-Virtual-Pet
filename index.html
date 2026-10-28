@@ -3,55 +3,64 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#101522">
-  <meta name="description" content="AR Virtual Pet — cuide de um pet 3D no seu mundo.">
+  <meta name="theme-color" content="#102b2b">
+  <meta name="description" content="Conheça Mochi, seu papagaio pirata 3D! Leve a aventura dos Sete Mares para o seu próprio mundo com realidade aumentada.">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
-  <title>AR Virtual Pet</title>
+  <title>Mochi — Papagaio Pirata AR</title>
 </head>
 <body>
   <div id="app">
     <header class="topbar glass">
-      <div><strong>AR Virtual Pet</strong><span id="statusText">Pronto para brincar</span></div>
-      <button id="settingsBtn" class="iconBtn" aria-label="Configurações">⚙️</button>
+      <div class="brand">
+        <div class="brandMark" aria-hidden="true">🦜</div>
+        <div><strong>Mochi <span class="brandTag">CAPITÃO</span></strong><span id="statusText">A aventura está prestes a começar</span></div>
+      </div>
+      <button id="settingsBtn" class="iconBtn" aria-label="Configurações" title="Configurações">⚙️</button>
     </header>
 
     <main>
       <section id="home" class="screen">
         <div class="hero glass">
-          <div class="petOrb" aria-hidden="true">🐾</div>
-          <p class="eyebrow">SEU PET. SEU MUNDO.</p>
-          <h1>Um amiguinho que vive no seu espaço.</h1>
-          <p>Coloque um pet 3D no chão usando a câmera, caminhe ao redor dele e interaja com ele em tempo real.</p>
-          <button id="startBtn" class="primary">📷 Entrar no mundo AR</button>
-          <button id="previewBtn" class="secondary">✨ Testar sem AR</button>
-          <p class="hint">AR funciona melhor em celulares Android compatíveis com WebXR/ARCore. O modo de teste funciona em qualquer navegador moderno.</p>
+          <div class="heroDecor decorPalm" aria-hidden="true">🌴</div>
+          <div class="heroDecor decorSkull" aria-hidden="true">☠️</div>
+          <div class="petOrb" aria-hidden="true"><span>🦜</span><i>✦</i></div>
+          <p class="eyebrow">⚓ DIÁRIO DE BORDO · CAPÍTULO 01</p>
+          <h1>Os Sete Mares<br><em>cabem no seu mundo.</em></h1>
+          <p class="heroCopy">Este é Mochi, o papagaio pirata! Traga seu companheiro 3D para perto de você, descubra um lugar para ele pousar e comece uma aventura em realidade aumentada.</p>
+          <div class="featureLine"><span>✦ Papagaio 3D</span><span>✦ Realidade aumentada</span><span>✦ Cuide do capitão</span></div>
+          <button id="startBtn" class="primary">📷 <span>Explorar em realidade aumentada</span><b>→</b></button>
+          <button id="previewBtn" class="secondary">✨ Treinar no convés (sem AR)</button>
+          <p class="hint">A experiência AR precisa de um celular e navegador compatíveis com WebXR. O modo de treino funciona sem câmera.</p>
+          <div class="heroFooter"><span>🏴‍☠️ TRIPULAÇÃO MOCHI</span><span>★ AVENTURA EM ANDAMENTO ★</span></div>
         </div>
       </section>
 
       <section id="game" class="gameScreen hidden">
         <canvas id="scene"></canvas>
         <div id="arFallback" class="fallback glass hidden">
-          <strong>Modo de visualização</strong>
-          <span>Seu navegador não iniciou WebXR. Você ainda pode cuidar e brincar com o pet.</span>
+          <strong>🧭 Modo de treino</strong>
+          <span>O convés está pronto! Seu navegador não iniciou o WebXR, mas você ainda pode cuidar do Mochi.</span>
         </div>
-        <button id="placePetBtn" class="placePetBtn hidden" type="button">🐾 Colocar pet aqui</button>
-        <button id="repositionPetBtn" class="repositionPetBtn hidden" type="button">📍 Reposicionar pet</button>
-        <button id="followAimBtn" class="followAimBtn hidden" type="button">📍 Modo: Normal</button>
+        <button id="placePetBtn" class="placePetBtn hidden" type="button">⚓ Fazer Mochi pousar aqui</button>
+        <button id="repositionPetBtn" class="repositionPetBtn hidden" type="button">🧭 Mover Mochi</button>
+        <button id="followAimBtn" class="followAimBtn hidden" type="button">📍 Modo: Ancorado</button>
         <div class="hud">
           <div class="stats glass">
-            <div><span>🍗 Fome</span><b id="hungerValue">82</b></div>
-            <div><span>😊 Humor</span><b id="moodValue">86</b></div>
-            <div><span>⚡ Energia</span><b id="energyValue">74</b></div>
-            <div><span>🧼 Higiene</span><b id="cleanValue">90</b></div>
+            <div class="statsHeading"><span>📜</span><small>ESTADO DO CAPITÃO</small></div>
+            <div><span>🍗 Fome</span><b id="hungerValue">82</b><i class="statTrack"><i style="width:82%"></i></i></div>
+            <div><span>😊 Humor</span><b id="moodValue">86</b><i class="statTrack moodTrack"><i style="width:86%"></i></i></div>
+            <div><span>⚡ Energia</span><b id="energyValue">74</b><i class="statTrack energyTrack"><i style="width:74%"></i></i></div>
+            <div><span>🧼 Higiene</span><b id="cleanValue">90</b><i class="statTrack cleanTrack"><i style="width:90%"></i></i></div>
           </div>
           <div class="actions glass">
-            <button data-action="feed">🍎<small>Alimentar</small></button>
-            <button data-action="play">🎾<small>Brincar</small></button>
-            <button data-action="pet">❤️<small>Carinho</small></button>
-            <button data-action="clean">🫧<small>Limpar</small></button>
+            <div class="actionHeading"><span>⚓</span> CUIDAR DA TRIPULAÇÃO <span>⚓</span></div>
+            <button data-action="feed"><span class="actionIcon">🍎</span><small>Alimentar</small></button>
+            <button data-action="play"><span class="actionIcon">🎾</span><small>Brincar</small></button>
+            <button data-action="pet"><span class="actionIcon">❤️</span><small>Carinho</small></button>
+            <button data-action="clean"><span class="actionIcon">🫧</span><small>Limpar</small></button>
           </div>
-          <button id="exitBtn" class="exit glass">✕</button>
+          <button id="exitBtn" class="exit glass" aria-label="Voltar ao menu" title="Voltar ao menu">✕</button>
         </div>
         <div id="toast" class="toast glass"></div>
       </section>
@@ -59,12 +68,13 @@
 
     <div id="settings" class="modal hidden">
       <div class="dialog glass">
-        <button id="closeSettings" class="close">✕</button>
+        <button id="closeSettings" class="close" aria-label="Fechar">✕</button>
+        <p class="eyebrow">⚙️ AJUSTES DO NAVIO</p>
         <h2>Configurações</h2>
-        <label>Nome do pet<input id="petName" maxlength="18" placeholder="Meu Pet"></label>
-        <label>Som <input id="soundToggle" type="checkbox" checked></label>
-        <label>Vibração <input id="vibrationToggle" type="checkbox" checked></label>
-        <button id="resetBtn" class="danger">Resetar pet</button>
+        <label>Nome do papagaio<input id="petName" maxlength="18" placeholder="Mochi"></label>
+        <label class="toggleRow"><span>🔔 Sons do convés</span><input id="soundToggle" type="checkbox" checked></label>
+        <label class="toggleRow"><span>📳 Vibração</span><input id="vibrationToggle" type="checkbox" checked></label>
+        <button id="resetBtn" class="danger">↻ Recomeçar aventura</button>
       </div>
     </div>
   </div>
