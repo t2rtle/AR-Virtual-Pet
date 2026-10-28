@@ -17,6 +17,34 @@ let anchoredPosition = new THREE.Vector3();
 let anchoredQuaternion = new THREE.Quaternion();
 let anchoredScale = new THREE.Vector3(1,1,1);
 let hasAnchoredPose = false;
+let activeXRAnchor = null;
+let latestHitResult = null;
+let anchorRequestPending = false;
+async function createSurfaceAnchor(){
+  if(!latestHitResult || typeof latestHitResult.createAnchor!=='function' || anchorRequestPending)return;
+  anchorRequestPending=true;
+  try{
+    const anchor=await latestHitResult.createAnchor();
+    if(activeXRAnchor && activeXRAnchor.delete)activeXRAnchor.delete();
+    activeXRAnchor=anchor;
+    toast('⚓ Mochi ancorado à superfície!');
+  }catch(err){console.warn('WebXR Anchor indisponível; usando posição fixa:',err);}
+  finally{anchorRequestPending=false;}
+}
+function updateSurfaceAnchor(frame,refSpace){
+  if(!activeXRAnchor || !frame || !refSpace)return false;
+  try{
+    const pose=frame.getPose(activeXRAnchor.anchorSpace,refSpace);
+    if(!pose)return false;
+    const p=pose.transform.position, q=pose.transform.orientation;
+    pet.position.set(p.x,p.y,p.z);
+    pet.quaternion.set(q.x,q.y,q.z,q.w);
+    pet.updateMatrixWorld(true);
+    captureAnchoredPose();
+    return true;
+  }catch(err){console.warn('Falha ao atualizar anchor WebXR:',err);return false;}
+}
+
 function captureAnchoredPose(){ if(!pet)return; pet.updateMatrix(); anchoredPosition.copy(pet.position); anchoredQuaternion.copy(pet.quaternion); anchoredScale.copy(pet.scale); hasAnchoredPose=true; }
 function restoreAnchoredPose(){ if(!pet || !hasAnchoredPose || cameraFollowMode || !placed)return; pet.position.copy(anchoredPosition); pet.quaternion.copy(anchoredQuaternion); pet.scale.copy(anchoredScale); }
 
@@ -295,6 +323,7 @@ function placePet(){
   // origin is at its center. Raise it by half its measured model height so it
   // stands above the detected surface instead of intersecting the floor.
   const surface = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+  createSurfaceAnchor();
   pet.scale.setScalar(AR_PET_SCALE);
   // The parrot model is built from the floor upward, so place its feet directly on the detected surface.
   pet.position.copy(surface);
@@ -418,6 +447,7 @@ function render(time,frame){
         try{
           const hits=frame.getHitTestResults(hitTestSource);
           if(hits.length){
+            latestHitResult=hits[0];
             const pose=hits[0].getPose(ref);
             if(pose)surfaceMatrix=new THREE.Matrix4().fromArray(pose.transform.matrix);
           }
@@ -457,6 +487,7 @@ function render(time,frame){
           $('#statusText').textContent='Superfície encontrada — toque para colocar o pet';
         }
       }else if(!cameraFollowMode){
+        latestHitResult=null;
         // If the phone is aimed down at the floor, don't make the player wait for
         // hit-test tracking: place the tiny pet in the lower camera view as a fallback.
         // This makes discreet, floor-facing use practical in public places.
@@ -524,7 +555,11 @@ function render(time,frame){
     if(!placed)pet.position.y=basePetY+Math.sin(s*2.1)*.018;
     if(!cameraFollowMode && !placed)pet.rotation.y=Math.sin(s*.45)*.08;
   }
-  if(pet && placed && !cameraFollowMode) restoreAnchoredPose();
+  if(pet && placed && !cameraFollowMode){
+    const ref=renderer.xr.isPresenting ? renderer.xr.getReferenceSpace() : null;
+    const anchored=renderer.xr.isPresenting && frame ? updateSurfaceAnchor(frame,ref) : false;
+    if(!anchored)restoreAnchoredPose();
+  }
   renderer.render(scene,camera);
 }
 async function startAR(){
@@ -539,7 +574,7 @@ async function startAR(){
       // can start without surface detection, and render() already has a safe
       // camera-forward placement fallback for those devices.
       arButton=ARButton.createButton(renderer,{
-        optionalFeatures:['hit-test','dom-overlay','local-floor'],
+        optionalFeatures:['hit-test','dom-overlay','local-floor','anchors'],
         domOverlay:{root:document.body}
       });
       arButton.id='xrButton';
