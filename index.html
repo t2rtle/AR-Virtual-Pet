@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#101522">
+  <meta name="description" content="AR Virtual Pet — cuide de um pet 3D no seu mundo.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <title>AR Virtual Pet</title>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar glass">
+      <div><strong>AR Virtual Pet</strong><span id="statusText">Pronto para brincar</span></div>
+      <button id="settingsBtn" class="iconBtn" aria-label="Configurações">⚙️</button>
+    </header>
+
+    <main>
+      <section id="home" class="screen">
+        <div class="hero glass">
+          <div class="petOrb" aria-hidden="true">🐾</div>
+          <p class="eyebrow">SEU PET. SEU MUNDO.</p>
+          <h1>Um amiguinho que vive no seu espaço.</h1>
+          <p>Coloque um pet 3D no chão usando a câmera, caminhe ao redor dele e interaja com ele em tempo real.</p>
+          <button id="startBtn" class="primary">📷 Entrar no mundo AR</button>
+          <button id="previewBtn" class="secondary">✨ Testar sem AR</button>
+          <p class="hint">AR funciona melhor em celulares Android compatíveis com WebXR/ARCore. O modo de teste funciona em qualquer navegador moderno.</p>
+        </div>
+      </section>
+
+      <section id="game" class="gameScreen hidden">
+        <canvas id="scene"></canvas>
+        <div id="arFallback" class="fallback glass hidden">
+          <strong>Modo de visualização</strong>
+          <span>Seu navegador não iniciou WebXR. Você ainda pode cuidar e brincar com o pet.</span>
+        </div>
+        <div class="hud">
+          <div class="stats glass">
+            <div><span>🍗 Fome</span><b id="hungerValue">82</b></div>
+            <div><span>😊 Humor</span><b id="moodValue">86</b></div>
+            <div><span>⚡ Energia</span><b id="energyValue">74</b></div>
+            <div><span>🧼 Higiene</span><b id="cleanValue">90</b></div>
+          </div>
+          <div class="actions glass">
+            <button data-action="feed">🍎<small>Alimentar</small></button>
+            <button data-action="play">🎾<small>Brincar</small></button>
+            <button data-action="pet">❤️<small>Carinho</small></button>
+            <button data-action="clean">🫧<small>Limpar</small></button>
+          </div>
+          <button id="exitBtn" class="exit glass">✕</button>
+        </div>
+        <div id="toast" class="toast glass"></div>
+      </section>
+    </main>
+
+    <div id="settings" class="modal hidden">
+      <div class="dialog glass">
+        <button id="closeSettings" class="close">✕</button>
+        <h2>Configurações</h2>
+        <label>Nome do pet<input id="petName" maxlength="18" placeholder="Meu Pet"></label>
+        <label>Som <input id="soundToggle" type="checkbox" checked></label>
+        <label>Vibração <input id="vibrationToggle" type="checkbox" checked></label>
+        <button id="resetBtn" class="danger">Resetar pet</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
