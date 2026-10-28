@@ -7,7 +7,7 @@ try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {
 const state = Object.assign({ name:'Mochi', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
 const basePetY = .05;
-const AR_PET_HEIGHT_METERS = 0.065; // altura-alvo conservadora: 6,5 cm no mundo AR
+const AR_PET_HEIGHT_METERS = 0.08; // altura-alvo ligeiramente maior: 8 cm no mundo AR
 let AR_PET_SCALE = 0.05; // recalculada pela caixa real do modelo depois da criação
 let placeButton, repositionButton, surfaceFound = false, repositioning = false;
 
