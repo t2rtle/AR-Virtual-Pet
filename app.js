@@ -246,7 +246,7 @@ function init3D(){
       repositionButton.textContent='📍 Mostrar / reposicionar pet';
       repositionButton.classList.remove('hidden');
     }
-    if(followAimButton){followAimButton.classList.add('hidden');followAimButton.textContent='🎯 Seguir mira: desligado';}
+    if(followAimButton){followAimButton.classList.add('hidden');followAimButton.textContent='📍 Modo: Normal';}
     hitTestSource=null;hitTestSourceRequested=false;
     const session=renderer.xr.getSession();
     session.addEventListener('select',placePet);
@@ -314,7 +314,7 @@ function placePet(){
   surfaceFound = false;
   if(placeButton)placeButton.classList.add('hidden');
   if(repositionButton)repositionButton.classList.remove('hidden');
-  if(followAimButton){followAimButton.textContent=`🎯 Seguir mira: ${cameraFollowMode?'ligado':'desligado'}`;followAimButton.classList.remove('hidden');}
+  if(followAimButton){followAimButton.textContent=cameraFollowMode?'🎯 Modo: Centro contínuo':'📍 Modo: Normal';followAimButton.classList.remove('hidden');}
   vibrate(35);tone();toast(wasRepositioning ? `${state.name} foi reposicionado! 🐾` : `${state.name} chegou! 🐾`);
   $('#statusText').textContent = `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
 }
@@ -401,7 +401,7 @@ function render(time,frame){
         .catch(err=>{console.warn('Hit-test indisponível:',err);$('#statusText').textContent='Detecção de chão indisponível; preparando pet à frente';});
       hitTestSourceRequested=true;
     }
-    if(!placed && ref){
+    if((!placed || cameraFollowMode) && ref){
       let surfaceMatrix=null;
       if(hitTestSource){
         try{
@@ -430,7 +430,13 @@ function render(time,frame){
           lookingDown=forward.y < -0.48;
         }
 
-        if(lookingDown && !repositioning){
+        if(cameraFollowMode){
+          if(surfaceMatrix.elements[5] > 0.65){
+            lastFloorMatrix.copy(surfaceMatrix);
+            hasLastFloorMatrix=true;
+          }
+          if(placeButton)placeButton.classList.add('hidden');
+        }else if(lookingDown && !repositioning){
           placePet();
         }else{
           if(placeButton){
@@ -439,7 +445,7 @@ function render(time,frame){
           }
           $('#statusText').textContent='Superfície encontrada — toque para colocar o pet';
         }
-      }else{
+      }else if(!cameraFollowMode){
         // If the phone is aimed down at the floor, don't make the player wait for
         // hit-test tracking: place the tiny pet in the lower camera view as a fallback.
         // This makes discreet, floor-facing use practical in public places.
@@ -473,7 +479,7 @@ function render(time,frame){
           reticle.visible=false;
           if(placeButton)placeButton.classList.add('hidden');
           if(repositionButton)repositionButton.classList.remove('hidden');
-          if(followAimButton){followAimButton.textContent=`🎯 Seguir mira: ${cameraFollowMode?'ligado':'desligado'}`;followAimButton.classList.remove('hidden');}
+          if(followAimButton){followAimButton.textContent='📍 Modo: Normal';followAimButton.classList.remove('hidden');}
           $('#statusText').textContent=lookingDown
             ? '🐾 Pet apareceu no modo de visão para o chão!'
             : '🐾 Pet apareceu à sua frente!';
