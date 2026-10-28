@@ -369,11 +369,29 @@ function render(time,frame){
         reticle.matrix.copy(surfaceMatrix);
         reticle.visible=true;
         surfaceFound=true;
-        if(placeButton){
-          placeButton.textContent='🐾 Colocar pet aqui';
-          placeButton.classList.remove('hidden');
+
+        // When the player deliberately points the phone down, place the pet
+        // directly on the detected floor. This avoids requiring a horizon view
+        // or an extra tap just to make the pet appear in public spaces.
+        let viewerPose=null;
+        try{viewerPose=frame.getViewerPose(ref);}catch(err){console.warn('Viewer pose indisponível:',err);}
+        let lookingDown=false;
+        if(viewerPose){
+          const q=viewerPose.transform.orientation;
+          const cameraRotation=new THREE.Quaternion(q.x,q.y,q.z,q.w);
+          const forward=new THREE.Vector3(0,0,-1).applyQuaternion(cameraRotation);
+          lookingDown=forward.y < -0.48;
         }
-        $('#statusText').textContent='Superfície encontrada — toque para colocar o pet';
+
+        if(lookingDown && !repositioning){
+          placePet();
+        }else{
+          if(placeButton){
+            placeButton.textContent='🐾 Colocar pet aqui';
+            placeButton.classList.remove('hidden');
+          }
+          $('#statusText').textContent='Superfície encontrada — toque para colocar o pet';
+        }
       }else{
         // If the phone is aimed down at the floor, don't make the player wait for
         // hit-test tracking: place the tiny pet in the lower camera view as a fallback.
