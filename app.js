@@ -6,7 +6,7 @@ let saved = null;
 try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {}
 const state = Object.assign({ name:'Mochi', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
-const basePetY = .05;
+const basePetY = .05;\nconst AR_PET_SCALE = 1.15;
 let placeButton, surfaceFound = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
@@ -86,15 +86,38 @@ function init3D(){
 }
 
 function placePet(){
-  if(!renderer?.xr.isPresenting || !reticle?.visible || placed)return;
-  pet.position.setFromMatrixPosition(reticle.matrix);
-  // Keep the pet upright and put its feet on the detected surface.
-  pet.position.y += .02;
-  pet.rotation.set(0,0,0);
-  pet.visible=true;placed=true;reticle.visible=false;surfaceFound=false;
+  if(!renderer?.xr.isPresenting || !reticle?.visible || placed || !pet)return;
+
+  // Hit-test returns the surface origin (normally the floor), while this model's
+  // origin is at its center. Raise it by half its measured model height so it
+  // stands above the detected surface instead of intersecting the floor.
+  const surface = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+  const surfaceRotation = new THREE.Quaternion().setFromRotationMatrix(reticle.matrix);
+  const modelHeight = 0.82 * pet.scale.y;
+  pet.position.copy(surface);
+  pet.position.y += modelHeight * 0.5 + 0.025;
+  pet.quaternion.identity();
+  pet.scale.setScalar(1.15);
+
+  // Make the placement immediately visible and ensure every mesh is renderable.
+  pet.traverse(node => {
+    if(node.isMesh){
+      node.visible = true;
+      node.frustumCulled = false;
+      if(node.material){
+        node.material.depthWrite = true;
+        node.material.needsUpdate = true;
+      }
+    }
+  });
+  pet.visible = true;
+  pet.updateMatrixWorld(true);
+  placed = true;
+  reticle.visible = false;
+  surfaceFound = false;
   if(placeButton)placeButton.classList.add('hidden');
   vibrate(35);tone();toast(`${state.name} chegou! 🐾`);
-  $('#statusText').textContent=`${state.name} está no seu espaço`;
+  $('#statusText').textContent = `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
 }
 
 function render(time,frame){
