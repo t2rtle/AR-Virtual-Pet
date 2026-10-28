@@ -127,3 +127,19 @@ button:focus-visible{outline:2px solid var(--jade-bright);outline-offset:3px}
   .placePetBtn { bottom: 170px; }
   #xrButton { bottom: 170px !important; }
 }
+
+
+/* Final HUD placement: keep AR controls in the open camera area, below the stats. */
+@media (max-width: 699px) {
+  .repositionPetBtn { top: 36dvh !important; }
+  .followAimBtn { top: calc(36dvh + 54px) !important; }
+}
+@media (min-width: 700px) {
+  .repositionPetBtn { top: 30dvh !important; }
+  .followAimBtn { top: calc(30dvh + 54px) !important; }
+}
+/* Short landscape screens need a compact stack that stays above the action dock. */
+@media (max-height: 560px) and (orientation: landscape) {
+  .repositionPetBtn { top: 38% !important; }
+  .followAimBtn { top: calc(38% + 48px) !important; }
+}
