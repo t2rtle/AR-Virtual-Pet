@@ -9,7 +9,7 @@ let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, h
 const basePetY = .05;
 const AR_PET_HEIGHT_METERS = 0.065; // altura-alvo conservadora: 6,5 cm no mundo AR
 let AR_PET_SCALE = 0.05; // recalculada pela caixa real do modelo depois da criação
-let placeButton, surfaceFound = false;
+let placeButton, surfaceFound = false, repositioning = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
 function decay(){ const h=Math.min(24,Math.max(0,(Date.now()-state.last)/3600000)); state.hunger=Math.max(0,state.hunger-h*4); state.mood=Math.max(0,state.mood-h*2); state.energy=Math.max(0,state.energy-h*3); state.clean=Math.max(0,state.clean-h*1.5); save(); updateUI(); }
@@ -215,7 +215,10 @@ function init3D(){
   reticle=new THREE.Mesh(new THREE.RingGeometry(.07,.085,32),new THREE.MeshBasicMaterial({color:0x9b8cff,transparent:true,opacity:.9}));
   reticle.rotation.x=-Math.PI/2;reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
   placeButton=$('#placePetBtn');
-  placeButton?.addEventListener('click',placePet);
+  placeButton?.addEventListener('click',()=>{
+    if(placed) beginReposition();
+    else placePet();
+  });
   renderer.xr.addEventListener('sessionstart',()=>{
     $('#game').classList.add('immersive-ar');
     document.body.classList.add('immersive-ar-active');
@@ -226,6 +229,7 @@ function init3D(){
     $('#arFallback').classList.add('hidden');
     floor.visible=false;
     placed=false;
+    repositioning=false;
     surfaceFound=false;
     pet.visible=false;
     reticle.visible=false;
@@ -237,13 +241,28 @@ function init3D(){
       $('#game').classList.remove('immersive-ar');
       document.body.classList.remove('immersive-ar-active');
       floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);
-      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;surfaceFound=false;
+      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;
       if(placeButton)placeButton.classList.add('hidden');
     },{once:true});
     $('#statusText').textContent='Procure o chão movendo o celular devagar';
     toast('Aponte para o chão e mova o celular lentamente');
   });
   renderer.setAnimationLoop(render);
+}
+
+function beginReposition(){
+  if(!renderer?.xr.isPresenting || !placed || !pet)return;
+  repositioning=true;
+  placed=false;
+  surfaceFound=false;
+  pet.visible=false;
+  reticle.visible=false;
+  if(placeButton){
+    placeButton.textContent='🔎 Procurando nova posição…';
+    placeButton.classList.add('hidden');
+  }
+  $('#statusText').textContent='Aponte para o local desejado e mova o celular devagar';
+  toast('Escolha o novo local do pet; toque em “Colocar pet aqui” quando aparecer');
 }
 
 function placePet(){
@@ -274,10 +293,14 @@ function placePet(){
   pet.visible = true;
   pet.updateMatrixWorld(true);
   placed = true;
+  repositioning = false;
   reticle.visible = false;
   surfaceFound = false;
-  if(placeButton)placeButton.classList.add('hidden');
-  vibrate(35);tone();toast(`${state.name} chegou! 🐾`);
+  if(placeButton){
+    placeButton.textContent='↻ Reposicionar pet';
+    placeButton.classList.remove('hidden');
+  }
+  vibrate(35);tone();toast(repositioning ? `${state.name} foi reposicionado! 🐾` : `${state.name} chegou! 🐾`);
   $('#statusText').textContent = `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
 }
 
@@ -318,8 +341,13 @@ function render(time,frame){
         }
         $('#statusText').textContent='Superfície encontrada — toque para colocar o pet';
       }else{
-        // Reliable fallback: show the pet automatically in front of the camera.
-        // Do not require a hit-test result or a placement-button tap to see the pet.
+        // Initial placement can fall back in front of the camera. During an explicit
+        // reposition request, never move automatically: wait for a detected surface.
+        if(repositioning){
+          if(placeButton)placeButton.classList.add('hidden');
+          $('#statusText').textContent='Procurando uma superfície para reposicionar… mova o celular devagar';
+          return renderer.render(scene,camera);
+        }
         let viewerPose=null;
         try{viewerPose=frame.getViewerPose(ref);}catch(err){console.warn('Viewer pose indisponível:',err);}
         if(viewerPose){
@@ -336,7 +364,10 @@ function render(time,frame){
           pet.visible=true;
           placed=true;
           reticle.visible=false;
-          if(placeButton)placeButton.classList.add('hidden');
+          if(placeButton){
+            placeButton.textContent='↻ Reposicionar pet';
+            placeButton.classList.remove('hidden');
+          }
           $('#statusText').textContent='🐾 Pet apareceu à sua frente!';
         }else{
           $('#statusText').textContent='Aguardando posição da câmera AR…';
