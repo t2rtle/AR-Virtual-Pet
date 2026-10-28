@@ -254,7 +254,7 @@ function init3D(){
       $('#game').classList.remove('immersive-ar');
       document.body.classList.remove('immersive-ar-active');
       floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);
-      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;cameraFollowMode=false;
+      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;cameraFollowMode=false;hasLastFloorMatrix=false;
       if(placeButton)placeButton.classList.add('hidden');
       if(repositionButton)repositionButton.classList.add('hidden');
       if(followAimButton)followAimButton.classList.add('hidden');
@@ -380,7 +380,7 @@ function repositionPet(){
   surfaceFound=false;
   if(placeButton)placeButton.classList.add('hidden');
   if(repositionButton){repositionButton.textContent='📍 Mostrar / reposicionar pet';repositionButton.classList.remove('hidden');}
-  if(followAimButton){followAimButton.textContent='🎯 Seguir mira: desligado';followAimButton.classList.remove('hidden');}
+  if(followAimButton){followAimButton.textContent='📍 Modo: Normal';followAimButton.classList.remove('hidden');}
   vibrate(35);tone();toast('🐾 Pet reposicionado na sua visão!');
   $('#statusText').textContent=`${state.name} está à sua frente — toque em reposicionar quando quiser`;
 }
