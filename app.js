@@ -7,7 +7,7 @@ try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {
 const state = Object.assign({ name:'Mochi', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
 const basePetY = .05;
-const AR_PET_SCALE = 0.34; // Papagaio em escala aproximada de 35–40 cm
+const AR_PET_SCALE = 0.10; // Papagaio miniatura: cerca de 10–13 cm no mundo real
 let placeButton, surfaceFound = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
@@ -19,16 +19,50 @@ function tone(){ if(!state.sound)return; try{const C=window.AudioContext||window
 
 function createPet(){
   const group = new THREE.Group();
-  const material = color => new THREE.MeshBasicMaterial({ color });
-  const green = material(0x20a85a);
-  const wingGreen = material(0x087b43);
-  const featherGreen = material(0x35c76b);
-  const red = material(0xe7473f);
-  const yellow = material(0xffc928);
-  const orange = material(0xff8a19);
-  const black = material(0x20212a);
-  const white = material(0xf5f1df);
-  const eyeBlack = material(0x11131a);
+  // Generate lightweight feather-pattern textures locally (no external image downloads).
+  const featherTexture = (base, highlight, shadow) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = base; ctx.fillRect(0, 0, 256, 256);
+    for (let y = -16; y < 280; y += 24) {
+      for (let x = -12; x < 280; x += 22) {
+        const ox = x + ((Math.floor(y / 24) % 2) * 11);
+        ctx.beginPath();
+        ctx.moveTo(ox, y + 18);
+        ctx.quadraticCurveTo(ox + 2, y + 2, ox + 11, y - 4);
+        ctx.quadraticCurveTo(ox + 20, y + 3, ox + 22, y + 18);
+        ctx.quadraticCurveTo(ox + 12, y + 12, ox, y + 18);
+        ctx.fillStyle = shadow; ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(ox + 3, y + 15);
+        ctx.quadraticCurveTo(ox + 6, y + 4, ox + 11, y);
+        ctx.quadraticCurveTo(ox + 16, y + 5, ox + 18, y + 15);
+        ctx.quadraticCurveTo(ox + 11, y + 10, ox + 3, y + 15);
+        ctx.fillStyle = highlight; ctx.fill();
+      }
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1.5, 1.5);
+    return texture;
+  };
+  const material = (color, options={}) => new THREE.MeshStandardMaterial({
+    color, roughness: 0.72, metalness: 0.01, ...options
+  });
+  const greenTexture = featherTexture('#168448', '#35bd60', '#0c6038');
+  const redTexture = featherTexture('#c92e36', '#f15b50', '#8e202b');
+  const wingTexture = featherTexture('#075d38', '#1e9b51', '#043e2a');
+  const green = material(0xffffff, {map: greenTexture});
+  const wingGreen = material(0xffffff, {map: wingTexture});
+  const featherGreen = material(0xffffff, {map: greenTexture});
+  const red = material(0xffffff, {map: redTexture});
+  const yellow = material(0xffc928, {roughness: 0.48});
+  const orange = material(0xff8517, {roughness: 0.42});
+  const black = material(0x20212a, {roughness: 0.58});
+  const white = material(0xf5f1df, {roughness: 0.62});
+  const eyeBlack = material(0x11131a, {roughness: 0.22, metalness: 0.03});
 
   const oval = (name, colorMat, position, scale, segments=20) => {
     const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, segments, 14), colorMat);
@@ -72,12 +106,18 @@ function createPet(){
     oval('Eye', eyeBlack, [side * .105, .79, .284], [.043, .058, .025], 14);
     oval('Eye sparkle', white, [side * .118, .812, .305], [.013, .016, .009], 10);
   }
-  const beak = new THREE.Mesh(new THREE.ConeGeometry(.105, .19, 5), orange);
-  beak.name = 'Parrot beak';
-  beak.position.set(0, .68, .31);
+  // Sculpted 3D hooked beak: rounded base, tapered upper hook and separate lower mandible.
+  oval('Beak base', orange, [0, .687, .292], [.105, .085, .09], 16);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(.088, .17, 9), orange);
+  beak.name = 'Curved upper beak';
+  beak.position.set(0, .65, .365);
   beak.rotation.x = Math.PI / 2;
+  beak.rotation.z = Math.PI;
   group.add(beak);
-  oval('Lower beak', yellow, [0, .625, .29], [.085, .045, .065], 12);
+  oval('Lower beak', yellow, [0, .615, .315], [.076, .035, .075], 14);
+  for (const side of [-1, 1]) {
+    oval('Beak nostril', black, [side * .042, .706, .365], [.009, .012, .008], 8);
+  }
 
   // Tiny pirate hat: brim, crown, skull and crossed bones.
   const brim = cylinder('Pirate hat brim', black, .30, .30, .055, [0, 1.025, .015], 24);
@@ -122,7 +162,7 @@ function init3D(){
   const key=new THREE.DirectionalLight(0xffffff,3);key.position.set(2,4,2);scene.add(key);
   floor=new THREE.Mesh(new THREE.CircleGeometry(4,64),new THREE.MeshStandardMaterial({color:0x202b3d,roughness:1}));
   floor.rotation.x=-Math.PI/2;floor.position.y=-.42;scene.add(floor);
-  pet=createPet();pet.position.set(0,basePetY,0);scene.add(pet);
+  pet=createPet();pet.scale.setScalar(AR_PET_SCALE);pet.position.set(0,basePetY,0);scene.add(pet);
   reticle=new THREE.Mesh(new THREE.RingGeometry(.07,.085,32),new THREE.MeshBasicMaterial({color:0x9b8cff,transparent:true,opacity:.9}));
   reticle.rotation.x=-Math.PI/2;reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
   placeButton=$('#placePetBtn');
@@ -238,6 +278,7 @@ function render(time,frame){
           const targetPosition=cameraPosition.add(forward.multiplyScalar(1.0));
           targetPosition.y=Math.max(0.05,targetPosition.y-0.28);
           pet.position.copy(targetPosition);
+          pet.scale.setScalar(AR_PET_SCALE);
           pet.rotation.set(0,0,0);
           pet.visible=true;
           placed=true;
