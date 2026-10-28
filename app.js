@@ -6,7 +6,8 @@ let saved = null;
 try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {}
 const state = Object.assign({ name:'Mochi', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
-const basePetY = .05;\nconst AR_PET_SCALE = 1.15;
+const basePetY = .05;
+const AR_PET_SCALE = 1.15;
 let placeButton, surfaceFound = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
@@ -17,7 +18,7 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
 function tone(){ if(!state.sound)return; try{const C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=520;g.gain.setValueAtTime(.035,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.12);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.12);o.onended=()=>c.close();}catch{} }
 
 function createPet(){
-  const group=new THREE.Group(),mat=new THREE.MeshStandardMaterial({color:0x9d8cff,roughness:.62});
+  const group=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:0x9d8cff});
   const belly=new THREE.Mesh(new THREE.SphereGeometry(.42,24,18),mat); belly.scale.set(1,.9,.82); group.add(belly);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.31,24,18),mat); head.position.y=.43; group.add(head);
   const earGeo=new THREE.SphereGeometry(.13,16,12);
@@ -97,6 +98,7 @@ function placePet(){
   pet.position.copy(surface);
   pet.position.y += modelHeight * 0.5 + 0.025;
   pet.quaternion.identity();
+  pet.renderOrder = 10;
 
   // Make the placement immediately visible and ensure every mesh is renderable.
   pet.traverse(node => {
