@@ -109,20 +109,48 @@ function render(time,frame){
         .catch(err=>{console.warn('Hit-test indisponível:',err);toast('Não foi possível detectar superfícies neste dispositivo.');});
       hitTestSourceRequested=true;
     }
-    if(hitTestSource && ref){
-      const hits=frame.getHitTestResults(hitTestSource);
-      if(hits.length && !placed){
-        const pose=hits[0].getPose(ref);
-        if(pose){
-          reticle.visible=true;
-          reticle.matrix.fromArray(pose.transform.matrix);
-          if(!surfaceFound){surfaceFound=true;$('#statusText').textContent='Superfície encontrada — toque em Colocar pet';}
-          if(placeButton)placeButton.classList.remove('hidden');
+    if(!placed && ref){
+      let targetMatrix=null;
+      // Prefer a real detected surface when WebXR hit-test is available.
+      if(hitTestSource){
+        const hits=frame.getHitTestResults(hitTestSource);
+        if(hits.length){
+          const pose=hits[0].getPose(ref);
+          if(pose) targetMatrix=new THREE.Matrix4().fromArray(pose.transform.matrix);
         }
-      }else if(!placed){
-        reticle.visible=false;surfaceFound=false;
-        if(placeButton)placeButton.classList.add('hidden');
-        $('#statusText').textContent='Procure o chão movendo o celular devagar';
+      }
+      // Fallback: some Android browser/device combinations provide camera passthrough
+      // but never return plane hits. Put a target 1.2 m in front of the viewer instead
+      // of leaving the pet permanently impossible to place.
+      if(!targetMatrix){
+        const viewerPose=frame.getViewerPose(ref);
+        if(viewerPose){
+          const p=viewerPose.transform.position;
+          const q=viewerPose.transform.orientation;
+          const cameraPosition=new THREE.Vector3(p.x,p.y,p.z);
+          const cameraRotation=new THREE.Quaternion(q.x,q.y,q.z,q.w);
+          const forward=new THREE.Vector3(0,0,-1).applyQuaternion(cameraRotation);
+          const targetPosition=cameraPosition.add(forward.multiplyScalar(1.2));
+          targetPosition.y=Math.max(0.15,targetPosition.y-0.35);
+          const flatRotation=new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0));
+          targetMatrix=new THREE.Matrix4().compose(targetPosition,flatRotation,new THREE.Vector3(1,1,1));
+          if(!surfaceFound) $('#statusText').textContent='Sem superfície detectada — pet será colocado à sua frente';
+        } else {
+          reticle.visible=false;
+          if(placeButton)placeButton.classList.add('hidden');
+          $('#statusText').textContent='Aguardando posição da câmera…';
+        }
+      } else {
+        $('#statusText').textContent='Superfície encontrada — toque em Colocar pet';
+      }
+      if(targetMatrix){
+        reticle.matrix.copy(targetMatrix);
+        reticle.visible=true;
+        surfaceFound=true;
+        if(placeButton){
+          placeButton.textContent=hitTestSource?'🐾 Colocar pet aqui':'🐾 Colocar pet à frente';
+          placeButton.classList.remove('hidden');
+        }
       }
     }
   }
