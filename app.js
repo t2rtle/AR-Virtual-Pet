@@ -7,7 +7,8 @@ try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {
 const state = Object.assign({ name:'Mochi', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
 const basePetY = .05;
-const AR_PET_SCALE = 0.10; // Papagaio miniatura: cerca de 10–13 cm no mundo real
+const AR_PET_HEIGHT_METERS = 0.065; // altura-alvo conservadora: 6,5 cm no mundo AR
+let AR_PET_SCALE = 0.05; // recalculada pela caixa real do modelo depois da criação
 let placeButton, surfaceFound = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
@@ -100,6 +101,37 @@ function createPet(){
     tail.rotation.z = (i-1)*.18;
   }
 
+  // Distinct, individually modeled feather layers (not just a flat color texture).
+  // Shoulder/wing rows create visible feather edges and depth when viewed close-up.
+  for (const side of [-1, 1]) {
+    for (let row = 0; row < 3; row++) {
+      for (let feather = 0; feather < 4; feather++) {
+        const y = .55 - row * .075 - feather * .018;
+        const z = .105 + feather * .012;
+        const f = oval('Layered wing feather', feather % 2 ? featherGreen : wingGreen,
+          [side * (.30 + row * .008), y, z],
+          [.045, .105 - row * .008, .028], 12);
+        f.rotation.z = side * (-.22 + feather * .075);
+        f.rotation.x = -.12;
+      }
+    }
+  }
+  // Small crown/cheek feathers give the head a parrot silhouette.
+  for (let i = 0; i < 5; i++) {
+    const crest = oval('Green crest feather', i % 2 ? wingGreen : green,
+      [(i - 2) * .055, 1.005 + (2 - Math.abs(i - 2)) * .018, -.015],
+      [.035, .105, .027], 12);
+    crest.rotation.z = (i - 2) * -.22;
+  }
+  // A few overlapping red breast feathers make the chest visibly sculpted.
+  for (let row = 0; row < 3; row++) {
+    for (let col = -1; col <= 1; col++) {
+      oval('Breast feather', red,
+        [col * .085, .48 - row * .075, .302 - Math.abs(col) * .012],
+        [.052, .085, .022], 12);
+    }
+  }
+
   // White eye patches, dark eyes and a hooked orange beak facing the camera.
   for (const side of [-1, 1]) {
     oval('Eye patch', white, [side * .105, .79, .244], [.085, .105, .045], 16);
@@ -108,13 +140,19 @@ function createPet(){
   }
   // Sculpted 3D hooked beak: rounded base, tapered upper hook and separate lower mandible.
   oval('Beak base', orange, [0, .687, .292], [.105, .085, .09], 16);
-  const beak = new THREE.Mesh(new THREE.ConeGeometry(.088, .17, 9), orange);
-  beak.name = 'Curved upper beak';
-  beak.position.set(0, .65, .365);
-  beak.rotation.x = Math.PI / 2;
-  beak.rotation.z = Math.PI;
+  // Hooked parrot beak built from a curved 3D tube plus a broad base.
+  const beakCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, .70, .335),
+    new THREE.Vector3(0, .665, .405),
+    new THREE.Vector3(0, .615, .432),
+    new THREE.Vector3(0, .575, .405)
+  ]);
+  const beak = new THREE.Mesh(new THREE.TubeGeometry(beakCurve, 16, .047, 10, false), orange);
+  beak.name = 'Sculpted hooked upper beak';
   group.add(beak);
-  oval('Lower beak', yellow, [0, .615, .315], [.076, .035, .075], 14);
+  oval('Beak side plate left', orange, [-.055, .66, .37], [.045, .055, .055], 12);
+  oval('Beak side plate right', orange, [.055, .66, .37], [.045, .055, .055], 12);
+  oval('Lower beak', yellow, [0, .615, .345], [.067, .027, .055], 14);
   for (const side of [-1, 1]) {
     oval('Beak nostril', black, [side * .042, .706, .365], [.009, .012, .008], 8);
   }
@@ -160,9 +198,20 @@ function init3D(){
   clock=new THREE.Clock();
   scene.add(new THREE.HemisphereLight(0xdde7ff,0x394052,2.2));
   const key=new THREE.DirectionalLight(0xffffff,3);key.position.set(2,4,2);scene.add(key);
+  const fill=new THREE.DirectionalLight(0xffd9a6,1.25);fill.position.set(-2,1,3);scene.add(fill);
+  const rim=new THREE.DirectionalLight(0x6ed9ff,1.1);rim.position.set(0,2,-3);scene.add(rim);
   floor=new THREE.Mesh(new THREE.CircleGeometry(4,64),new THREE.MeshStandardMaterial({color:0x202b3d,roughness:1}));
   floor.rotation.x=-Math.PI/2;floor.position.y=-.42;scene.add(floor);
-  pet=createPet();pet.scale.setScalar(AR_PET_SCALE);pet.position.set(0,basePetY,0);scene.add(pet);
+  pet=createPet();
+  // Escala por dimensão medida, não por uma suposição sobre as unidades do modelo.
+  // WebXR usa metros; isto limita a altura física do papagaio a cerca de 6,5 cm.
+  const petBounds = new THREE.Box3().setFromObject(pet);
+  const petSize = petBounds.getSize(new THREE.Vector3());
+  AR_PET_SCALE = AR_PET_HEIGHT_METERS / Math.max(petSize.y, 0.001);
+  pet.scale.setScalar(AR_PET_SCALE);
+  pet.userData.targetHeightMeters = AR_PET_HEIGHT_METERS;
+  pet.position.set(0,basePetY,0);
+  scene.add(pet);
   reticle=new THREE.Mesh(new THREE.RingGeometry(.07,.085,32),new THREE.MeshBasicMaterial({color:0x9b8cff,transparent:true,opacity:.9}));
   reticle.rotation.x=-Math.PI/2;reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
   placeButton=$('#placePetBtn');
@@ -235,6 +284,10 @@ function placePet(){
 function render(time,frame){
   const s=clock.getElapsedTime();
   if(renderer.xr.isPresenting && frame){
+    // Guard against any placement/fallback path accidentally restoring a larger scale.
+    if (pet && pet.userData.targetHeightMeters) {
+      pet.scale.setScalar(AR_PET_SCALE);
+    }
     const ref=renderer.xr.getReferenceSpace();
     if(!hitTestSourceRequested){
       const session=renderer.xr.getSession();
