@@ -7,6 +7,7 @@ try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {
 const state = Object.assign({ name:'Mochi', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
 const basePetY = .05;
+let placeButton, surfaceFound = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
 function decay(){ const h=Math.min(24,Math.max(0,(Date.now()-state.last)/3600000)); state.hunger=Math.max(0,state.hunger-h*4); state.mood=Math.max(0,state.mood-h*2); state.energy=Math.max(0,state.energy-h*3); state.clean=Math.max(0,state.clean-h*1.5); save(); updateUI(); }
@@ -52,6 +53,8 @@ function init3D(){
   pet=createPet();pet.position.set(0,basePetY,0);scene.add(pet);
   reticle=new THREE.Mesh(new THREE.RingGeometry(.07,.085,32),new THREE.MeshBasicMaterial({color:0x9b8cff,transparent:true,opacity:.9}));
   reticle.rotation.x=-Math.PI/2;reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
+  placeButton=$('#placePetBtn');
+  placeButton?.addEventListener('click',placePet);
   renderer.xr.addEventListener('sessionstart',()=>{
     $('#game').classList.add('immersive-ar');
     document.body.classList.add('immersive-ar-active');
@@ -62,8 +65,10 @@ function init3D(){
     $('#arFallback').classList.add('hidden');
     floor.visible=false;
     placed=false;
+    surfaceFound=false;
     pet.visible=false;
     reticle.visible=false;
+    if(placeButton)placeButton.classList.add('hidden');
     hitTestSource=null;hitTestSourceRequested=false;
     const session=renderer.xr.getSession();
     session.addEventListener('select',placePet);
@@ -71,10 +76,11 @@ function init3D(){
       $('#game').classList.remove('immersive-ar');
       document.body.classList.remove('immersive-ar-active');
       floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);
-      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;
+      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;surfaceFound=false;
+      if(placeButton)placeButton.classList.add('hidden');
     },{once:true});
-    $('#statusText').textContent='AR ativo — mova o celular para encontrar uma superfície';
-    toast('Mova o celular devagar para encontrar o chão');
+    $('#statusText').textContent='Procure o chão movendo o celular devagar';
+    toast('Aponte para o chão e mova o celular lentamente');
   });
   renderer.setAnimationLoop(render);
 }
@@ -82,7 +88,11 @@ function init3D(){
 function placePet(){
   if(!renderer?.xr.isPresenting || !reticle?.visible || placed)return;
   pet.position.setFromMatrixPosition(reticle.matrix);
-  pet.visible=true;placed=true;reticle.visible=false;
+  // Keep the pet upright and put its feet on the detected surface.
+  pet.position.y += .02;
+  pet.rotation.set(0,0,0);
+  pet.visible=true;placed=true;reticle.visible=false;surfaceFound=false;
+  if(placeButton)placeButton.classList.add('hidden');
   vibrate(35);tone();toast(`${state.name} chegou! 🐾`);
   $('#statusText').textContent=`${state.name} está no seu espaço`;
 }
@@ -103,8 +113,17 @@ function render(time,frame){
       const hits=frame.getHitTestResults(hitTestSource);
       if(hits.length && !placed){
         const pose=hits[0].getPose(ref);
-        if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);}
-      }else reticle.visible=false;
+        if(pose){
+          reticle.visible=true;
+          reticle.matrix.fromArray(pose.transform.matrix);
+          if(!surfaceFound){surfaceFound=true;$('#statusText').textContent='Superfície encontrada — toque em Colocar pet';}
+          if(placeButton)placeButton.classList.remove('hidden');
+        }
+      }else if(!placed){
+        reticle.visible=false;surfaceFound=false;
+        if(placeButton)placeButton.classList.add('hidden');
+        $('#statusText').textContent='Procure o chão movendo o celular devagar';
+      }
     }
   }
   if(pet && pet.visible){pet.position.y=placed?pet.position.y:basePetY+Math.sin(s*2.1)*.018;pet.rotation.y=Math.sin(s*.45)*.08;}
