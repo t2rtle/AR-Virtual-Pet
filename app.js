@@ -421,9 +421,11 @@ async function startAR(){
     if(!navigator.xr)throw Error('WebXR não existe neste navegador');
     if(!await navigator.xr.isSessionSupported('immersive-ar'))throw Error('AR imersivo não suportado');
     if(!arButton){
+      // Do not make hit-test mandatory: some compatible mobile AR sessions
+      // can start without surface detection, and render() already has a safe
+      // camera-forward placement fallback for those devices.
       arButton=ARButton.createButton(renderer,{
-        requiredFeatures:['hit-test'],
-        optionalFeatures:['dom-overlay','local-floor'],
+        optionalFeatures:['hit-test','dom-overlay','local-floor'],
         domOverlay:{root:document.body}
       });
       arButton.id='xrButton';
