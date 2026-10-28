@@ -143,3 +143,18 @@ button:focus-visible{outline:2px solid var(--jade-bright);outline-offset:3px}
   .repositionPetBtn { top: 38% !important; }
   .followAimBtn { top: calc(38% + 48px) !important; }
 }
+
+
+/* Mobile fix based on real-device screenshot: place controls below the full stats card. */
+@media (max-width: 699px) {
+  .repositionPetBtn { top: 205px !important; }
+  .followAimBtn { top: 261px !important; }
+}
+@media (max-width: 420px) {
+  .repositionPetBtn { top: 205px !important; }
+  .followAimBtn { top: 261px !important; }
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .repositionPetBtn { top: 190px !important; }
+  .followAimBtn { top: 240px !important; }
+}
