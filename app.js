@@ -36,10 +36,13 @@ function init3D(){
   scene.background=null;
   camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.01,100);
   camera.position.set(0,.65,1.8);
-  renderer=new THREE.WebGLRenderer({canvas:$('#scene'),antialias:true,alpha:true,powerPreference:'high-performance'});
+  renderer=new THREE.WebGLRenderer({canvas:$('#scene'),antialias:true,alpha:true,premultipliedAlpha:false,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
   renderer.setSize(innerWidth,innerHeight);
   renderer.setClearColor(0x000000,0);
+  renderer.setClearAlpha(0);
+  renderer.domElement.style.backgroundColor='transparent';
+  renderer.domElement.style.opacity='1';
   renderer.xr.enabled=true;
   clock=new THREE.Clock();
   scene.add(new THREE.HemisphereLight(0xdde7ff,0x394052,2.2));
@@ -51,6 +54,11 @@ function init3D(){
   reticle.rotation.x=-Math.PI/2;reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
   renderer.xr.addEventListener('sessionstart',()=>{
     $('#game').classList.add('immersive-ar');
+    document.body.classList.add('immersive-ar-active');
+    // Reassert a fully transparent WebGL surface for the AR camera passthrough.
+    renderer.setClearColor(0x000000,0);
+    renderer.setClearAlpha(0);
+    renderer.domElement.style.backgroundColor='transparent';
     $('#arFallback').classList.add('hidden');
     floor.visible=false;
     placed=false;
@@ -61,6 +69,7 @@ function init3D(){
     session.addEventListener('select',placePet);
     session.addEventListener('end',()=>{
       $('#game').classList.remove('immersive-ar');
+      document.body.classList.remove('immersive-ar-active');
       floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);
       reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;
     },{once:true});
@@ -129,7 +138,7 @@ async function startAR(){
 }
 function preview(){
   init3D();$('#home').classList.add('hidden');$('#game').classList.remove('hidden');
-  $('#game').classList.remove('immersive-ar');$('#arFallback').classList.remove('hidden');
+  $('#game').classList.remove('immersive-ar');document.body.classList.remove('immersive-ar-active');$('#arFallback').classList.remove('hidden');
   floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);placed=false;
   toast('Modo de teste 3D iniciado');
 }
