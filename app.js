@@ -311,31 +311,35 @@ function placePet(){
 
 function repositionPet(){
   if(!renderer?.xr.isPresenting || !pet)return;
-  // Move the pet into the current camera view, close enough to be visible.
-  // The action only runs after an explicit tap; normal AR placement is unchanged.
+  // Use the active XR eye camera when available; its transform matches the live view.
   const xrCamera=renderer.xr.getCamera(camera);
+  const viewCamera=xrCamera.cameras?.[0] || xrCamera;
+  viewCamera.updateMatrixWorld(true);
   const cameraPosition=new THREE.Vector3();
   const cameraDirection=new THREE.Vector3();
-  xrCamera.getWorldPosition(cameraPosition);
-  xrCamera.getWorldDirection(cameraDirection);
-  cameraDirection.y=0;
+  viewCamera.getWorldPosition(cameraPosition);
+  viewCamera.getWorldDirection(cameraDirection);
   if(cameraDirection.lengthSq()<0.0001)cameraDirection.set(0,0,-1);
   cameraDirection.normalize();
-  pet.position.copy(cameraPosition).addScaledVector(cameraDirection,0.68);
-  pet.position.y=Math.max(0.08,cameraPosition.y-0.42);
+
+  // Keep the pet along the actual viewing ray. Flattening the direction made it
+  // leave the camera view when the phone was pointed down at the floor.
+  pet.position.copy(cameraPosition).addScaledVector(cameraDirection,0.72);
+  pet.position.y=Math.max(0.06,pet.position.y-0.04);
   pet.scale.setScalar(AR_PET_SCALE);
   pet.rotation.set(0,0,0);
-  // Turn the parrot toward the viewer while keeping it inside the current view.
-  pet.rotation.y=Math.atan2(cameraDirection.x,cameraDirection.z)+Math.PI;
+  pet.rotation.y=Math.atan2(cameraPosition.x-pet.position.x,cameraPosition.z-pet.position.z);
+  pet.traverse(node=>{if(node.isMesh){node.visible=true;node.frustumCulled=false;}});
   pet.visible=true;
   pet.updateMatrixWorld(true);
   placed=true;
+  repositioning=false;
   reticle.visible=false;
   surfaceFound=false;
   if(placeButton)placeButton.classList.add('hidden');
-  if(repositionButton)repositionButton.classList.remove('hidden');
-  vibrate(35);tone();toast('🐾 Pet reposicionado perto de você!');
-  $('#statusText').textContent=`${state.name} está perto de você — toque em reposicionar quando quiser`;
+  if(repositionButton){repositionButton.textContent='📍 Mostrar / reposicionar pet';repositionButton.classList.remove('hidden');}
+  vibrate(35);tone();toast('🐾 Pet reposicionado na sua visão!');
+  $('#statusText').textContent=`${state.name} está à sua frente — toque em reposicionar quando quiser`;
 }
 
 function render(time,frame){
