@@ -10,3 +10,8 @@ body.immersive-ar-active .placePetBtn{z-index:35;pointer-events:auto}
 
 /* Optional one-tap reposition control, shown only after the pet is placed in AR. */
 .repositionPetBtn{position:fixed;z-index:35;top:132px;right:12px;max-width:calc(100vw - 24px);padding:11px 14px;border:1px solid rgba(255,255,255,.24);border-radius:14px;background:rgba(17,23,35,.82);color:#fff;font:750 12px system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+
+/* Optional control for switching between anchored floor placement and full 3D camera tracking. */
+.followAimBtn{position:fixed;z-index:35;top:184px;right:12px;max-width:calc(100vw - 24px);padding:11px 14px;border:1px solid rgba(155,140,255,.42);border-radius:14px;background:rgba(35,29,67,.88);color:#fff;font:750 12px system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25);cursor:pointer;touch-action:manipulation;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+body.immersive-ar-active .followAimBtn{z-index:36;pointer-events:auto}
