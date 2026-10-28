@@ -233,7 +233,12 @@ function init3D(){
     pet.visible=false;
     reticle.visible=false;
     if(placeButton)placeButton.classList.add('hidden');
-    if(repositionButton)repositionButton.classList.add('hidden');
+    // Keep a manual recovery control available throughout AR, even before hit-test
+    // detects a surface. Tapping it can bring the pet into view if placement stalls.
+    if(repositionButton){
+      repositionButton.textContent='📍 Mostrar / reposicionar pet';
+      repositionButton.classList.remove('hidden');
+    }
     hitTestSource=null;hitTestSourceRequested=false;
     const session=renderer.xr.getSession();
     session.addEventListener('select',placePet);
