@@ -13,6 +13,12 @@ let placeButton, repositionButton, followAimButton, surfaceFound = false, reposi
 let cameraFollowMode = false;
 let lastFloorMatrix = new THREE.Matrix4();
 let hasLastFloorMatrix = false;
+let anchoredPosition = new THREE.Vector3();
+let anchoredQuaternion = new THREE.Quaternion();
+let anchoredScale = new THREE.Vector3(1,1,1);
+let hasAnchoredPose = false;
+function captureAnchoredPose(){ if(!pet)return; pet.updateMatrix(); anchoredPosition.copy(pet.position); anchoredQuaternion.copy(pet.quaternion); anchoredScale.copy(pet.scale); hasAnchoredPose=true; }
+function restoreAnchoredPose(){ if(!pet || !hasAnchoredPose || cameraFollowMode || !placed)return; pet.position.copy(anchoredPosition); pet.quaternion.copy(anchoredQuaternion); pet.scale.copy(anchoredScale); }
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
 function decay(){ const h=Math.min(24,Math.max(0,(Date.now()-state.last)/3600000)); state.hunger=Math.max(0,state.hunger-h*4); state.mood=Math.max(0,state.mood-h*2); state.energy=Math.max(0,state.energy-h*3); state.clean=Math.max(0,state.clean-h*1.5); save(); updateUI(); }
@@ -310,6 +316,7 @@ function placePet(){
   pet.visible = true;
   pet.updateMatrixWorld(true);
   placed = true;
+  captureAnchoredPose();
   repositioning = false;
   reticle.visible = false;
   surfaceFound = false;
@@ -341,8 +348,10 @@ function toggleCameraFollowMode(){
       pet.rotation.set(0,0,0);
       pet.visible=true;
       pet.updateMatrixWorld(true);
+      captureAnchoredPose();
       toast('🐾 Mochi encaixado na superfície detectada!');
     }else{
+      captureAnchoredPose();
       toast('⚓ Modo Ancorado ativado — Mochi ficou neste local');
     }
   }
@@ -376,6 +385,7 @@ function repositionPet(){
   pet.visible=true;
   pet.updateMatrixWorld(true);
   placed=true;
+  captureAnchoredPose();
   repositioning=false;
   reticle.visible=false;
   surfaceFound=false;
@@ -476,6 +486,7 @@ function render(time,frame){
           pet.rotation.set(0,0,0);
           pet.visible=true;
           placed=true;
+          captureAnchoredPose();
           repositioning=false;
           reticle.visible=false;
           if(placeButton)placeButton.classList.add('hidden');
@@ -513,6 +524,7 @@ function render(time,frame){
     if(!placed)pet.position.y=basePetY+Math.sin(s*2.1)*.018;
     if(!cameraFollowMode && !placed)pet.rotation.y=Math.sin(s*.45)*.08;
   }
+  if(pet && placed && !cameraFollowMode) restoreAnchoredPose();
   renderer.render(scene,camera);
 }
 async function startAR(){
