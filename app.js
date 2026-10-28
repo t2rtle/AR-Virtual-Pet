@@ -215,8 +215,9 @@ function init3D(){
   pet.userData.targetHeightMeters = AR_PET_HEIGHT_METERS;
   pet.position.set(0,basePetY,0);
   scene.add(pet);
-  reticle=new THREE.Mesh(new THREE.RingGeometry(.07,.085,32),new THREE.MeshBasicMaterial({color:0x9b8cff,transparent:true,opacity:.9}));
-  reticle.rotation.x=-Math.PI/2;reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
+  // Invisible placement anchor: keeps the detected surface transform without drawing the old purple ring.
+  reticle=new THREE.Object3D();
+  reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
   placeButton=$('#placePetBtn');
   repositionButton=$('#repositionPetBtn');
   followAimButton=$('#followAimBtn');
@@ -246,7 +247,7 @@ function init3D(){
       repositionButton.textContent='📍 Mostrar / reposicionar pet';
       repositionButton.classList.remove('hidden');
     }
-    if(followAimButton){followAimButton.classList.add('hidden');followAimButton.textContent='📍 Modo: Normal';}
+    if(followAimButton){followAimButton.classList.add('hidden');followAimButton.textContent='⚓ Modo: Ancorado';}
     hitTestSource=null;hitTestSourceRequested=false;
     const session=renderer.xr.getSession();
     session.addEventListener('select',placePet);
@@ -314,7 +315,7 @@ function placePet(){
   surfaceFound = false;
   if(placeButton)placeButton.classList.add('hidden');
   if(repositionButton)repositionButton.classList.remove('hidden');
-  if(followAimButton){followAimButton.textContent=cameraFollowMode?'🎯 Modo: Centro contínuo':'📍 Modo: Normal';followAimButton.classList.remove('hidden');}
+  if(followAimButton){followAimButton.textContent=cameraFollowMode?'🎯 Modo: Seguir mira':'⚓ Modo: Ancorado';followAimButton.classList.remove('hidden');}
   vibrate(35);tone();toast(wasRepositioning ? `${state.name} foi reposicionado! 🐾` : `${state.name} chegou! 🐾`);
   $('#statusText').textContent = `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
 }
@@ -325,7 +326,7 @@ function toggleCameraFollowMode(){
     cameraFollowMode=true;
     hasLastFloorMatrix=false;
     pet.visible=true;
-    toast('🎯 Modo Centro contínuo ativado — mire onde quiser');
+    toast('🎯 Modo Seguir mira ativado — aponte onde quiser');
   }else{
     cameraFollowMode=false;
     const xrCamera=renderer.xr.getCamera(camera);
@@ -346,7 +347,7 @@ function toggleCameraFollowMode(){
     }
   }
   if(followAimButton){
-    followAimButton.textContent=cameraFollowMode?'🎯 Modo: Centro contínuo':'📍 Modo: Normal';
+    followAimButton.textContent=cameraFollowMode?'🎯 Modo: Seguir mira':'⚓ Modo: Ancorado';
     followAimButton.setAttribute('aria-pressed',String(cameraFollowMode));
   }
 }
@@ -380,7 +381,7 @@ function repositionPet(){
   surfaceFound=false;
   if(placeButton)placeButton.classList.add('hidden');
   if(repositionButton){repositionButton.textContent='📍 Mostrar / reposicionar pet';repositionButton.classList.remove('hidden');}
-  if(followAimButton){followAimButton.textContent='📍 Modo: Normal';followAimButton.classList.remove('hidden');}
+  if(followAimButton){followAimButton.textContent='⚓ Modo: Ancorado';followAimButton.classList.remove('hidden');}
   vibrate(35);tone();toast('🐾 Pet reposicionado na sua visão!');
   $('#statusText').textContent=`${state.name} está à sua frente — toque em reposicionar quando quiser`;
 }
@@ -479,7 +480,7 @@ function render(time,frame){
           reticle.visible=false;
           if(placeButton)placeButton.classList.add('hidden');
           if(repositionButton)repositionButton.classList.remove('hidden');
-          if(followAimButton){followAimButton.textContent='📍 Modo: Normal';followAimButton.classList.remove('hidden');}
+          if(followAimButton){followAimButton.textContent='⚓ Modo: Ancorado';followAimButton.classList.remove('hidden');}
           $('#statusText').textContent=lookingDown
             ? '🐾 Pet apareceu no modo de visão para o chão!'
             : '🐾 Pet apareceu à sua frente!';
