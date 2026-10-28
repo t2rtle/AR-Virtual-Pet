@@ -11,6 +11,8 @@ const AR_PET_HEIGHT_METERS = 0.10; // altura-alvo: 10 cm no mundo AR
 let AR_PET_SCALE = 0.05; // recalculada pela caixa real do modelo depois da criação
 let placeButton, repositionButton, followAimButton, surfaceFound = false, repositioning = false;
 let cameraFollowMode = false;
+let lastFloorMatrix = new THREE.Matrix4();
+let hasLastFloorMatrix = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
 function decay(){ const h=Math.min(24,Math.max(0,(Date.now()-state.last)/3600000)); state.hunger=Math.max(0,state.hunger-h*4); state.mood=Math.max(0,state.mood-h*2); state.energy=Math.max(0,state.energy-h*3); state.clean=Math.max(0,state.clean-h*1.5); save(); updateUI(); }
@@ -234,6 +236,7 @@ function init3D(){
     repositioning=false;
     surfaceFound=false;
     cameraFollowMode=false;
+    hasLastFloorMatrix=false;
     pet.visible=false;
     reticle.visible=false;
     if(placeButton)placeButton.classList.add('hidden');
@@ -318,17 +321,35 @@ function placePet(){
 
 function toggleCameraFollowMode(){
   if(!renderer?.xr.isPresenting || !pet || !placed)return;
-  cameraFollowMode=!cameraFollowMode;
-  if(cameraFollowMode){
+  if(!cameraFollowMode){
+    cameraFollowMode=true;
+    hasLastFloorMatrix=false;
     pet.visible=true;
-    toast('🎯 Mochi agora acompanha a mira vertical e horizontal');
+    toast('🎯 Modo Centro contínuo ativado — mire onde quiser');
   }else{
-    // The current position is retained, so the pet stays in the real world.
-    toast('🐾 Mochi ficará parado no local atual');
+    cameraFollowMode=false;
+    const xrCamera=renderer.xr.getCamera(camera);
+    const viewCamera=xrCamera.cameras?.[0] || xrCamera;
+    viewCamera.updateMatrixWorld(true);
+    const direction=new THREE.Vector3();
+    viewCamera.getWorldDirection(direction).normalize();
+    if(hasLastFloorMatrix && direction.y < -0.48){
+      const floorPoint=new THREE.Vector3().setFromMatrixPosition(lastFloorMatrix);
+      pet.position.copy(floorPoint);
+      pet.position.y+=0.012;
+      pet.rotation.set(0,0,0);
+      pet.visible=true;
+      pet.updateMatrixWorld(true);
+      toast('🐾 Mochi encaixado na superfície detectada!');
+    }else{
+      toast('🐾 Modo Normal ativado — Mochi ficou neste local');
+    }
   }
-  if(followAimButton)followAimButton.textContent=`🎯 Seguir mira: ${cameraFollowMode?'ligado':'desligado'}`;
+  if(followAimButton){
+    followAimButton.textContent=cameraFollowMode?'🎯 Modo: Centro contínuo':'📍 Modo: Normal';
+    followAimButton.setAttribute('aria-pressed',String(cameraFollowMode));
+  }
 }
-
 function repositionPet(){
   if(!renderer?.xr.isPresenting || !pet)return;
   // Use the active XR eye camera when available; its transform matches the live view.
