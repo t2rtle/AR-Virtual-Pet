@@ -16,7 +16,7 @@ let hasLastFloorMatrix = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
 function decay(){ const h=Math.min(24,Math.max(0,(Date.now()-state.last)/3600000)); state.hunger=Math.max(0,state.hunger-h*4); state.mood=Math.max(0,state.mood-h*2); state.energy=Math.max(0,state.energy-h*3); state.clean=Math.max(0,state.clean-h*1.5); save(); updateUI(); }
-function updateUI(){ ['hunger','mood','energy','clean'].forEach(k=>$('#'+k+'Value').textContent=Math.round(state[k])); $('#statusText').textContent=`${state.name} está a postos, marujo!`; }
+function updateUI(){ ['hunger','mood','energy','clean'].forEach(k=>{ $('#'+k+'Value').textContent=Math.round(state[k]); const bar=$('#'+k+'Value').parentElement.querySelector('.statTrack i'); if(bar)bar.style.width=Math.max(0,Math.min(100,state[k]))+'%'; }); $('#statusText').textContent=`${state.name} está a postos, marujo!`; }
 function vibrate(ms=20){ if(state.vibration && navigator.vibrate) navigator.vibrate(ms); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2400); }
 function tone(){ if(!state.sound)return; try{const C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=520;g.gain.setValueAtTime(.035,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.12);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.12);o.onended=()=>c.close();}catch{} }
