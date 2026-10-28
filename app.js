@@ -269,6 +269,7 @@ function beginReposition(){
 
 function placePet(){
   if(!renderer?.xr.isPresenting || !reticle?.visible || placed || !pet)return;
+  const wasRepositioning = repositioning;
 
   // Hit-test returns the surface origin (normally the floor), while this model's
   // origin is at its center. Raise it by half its measured model height so it
@@ -302,7 +303,7 @@ function placePet(){
     placeButton.textContent='↻ Reposicionar pet';
     placeButton.classList.remove('hidden');
   }
-  vibrate(35);tone();toast(repositioning ? `${state.name} foi reposicionado! 🐾` : `${state.name} chegou! 🐾`);
+  vibrate(35);tone();toast(wasRepositioning ? `${state.name} foi reposicionado! 🐾` : `${state.name} chegou! 🐾`);
   $('#statusText').textContent = `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
 }
 
