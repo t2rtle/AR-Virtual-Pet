@@ -375,13 +375,9 @@ function render(time,frame){
         }
         $('#statusText').textContent='Superfície encontrada — toque para colocar o pet';
       }else{
-        // Initial placement can fall back in front of the camera. During an explicit
-        // reposition request, never move automatically: wait for a detected surface.
-        if(repositioning){
-          if(placeButton)placeButton.classList.add('hidden');
-          $('#statusText').textContent='Procurando uma superfície para reposicionar… mova o celular devagar';
-          return renderer.render(scene,camera);
-        }
+        // If the phone is aimed down at the floor, don't make the player wait for
+        // hit-test tracking: place the tiny pet in the lower camera view as a fallback.
+        // This makes discreet, floor-facing use practical in public places.
         let viewerPose=null;
         try{viewerPose=frame.getViewerPose(ref);}catch(err){console.warn('Viewer pose indisponível:',err);}
         if(viewerPose){
@@ -390,17 +386,31 @@ function render(time,frame){
           const cameraPosition=new THREE.Vector3(p.x,p.y,p.z);
           const cameraRotation=new THREE.Quaternion(q.x,q.y,q.z,q.w);
           const forward=new THREE.Vector3(0,0,-1).applyQuaternion(cameraRotation);
-          const targetPosition=cameraPosition.add(forward.multiplyScalar(1.0));
-          targetPosition.y=Math.max(0.05,targetPosition.y-0.28);
+          const lookingDown=forward.y < -0.48;
+
+          // During an explicit reposition request, keep the existing safe behavior
+          // unless the user is clearly aiming down, in which case use the fallback.
+          if(repositioning && !lookingDown){
+            if(placeButton)placeButton.classList.add('hidden');
+            $('#statusText').textContent='Procurando uma superfície para reposicionar… mova o celular devagar';
+            return renderer.render(scene,camera);
+          }
+
+          const distance=lookingDown ? 0.62 : 1.0;
+          const targetPosition=cameraPosition.clone().add(forward.multiplyScalar(distance));
+          targetPosition.y=Math.max(0.05,targetPosition.y-(lookingDown ? 0.02 : 0.28));
           pet.position.copy(targetPosition);
           pet.scale.setScalar(AR_PET_SCALE);
           pet.rotation.set(0,0,0);
           pet.visible=true;
           placed=true;
+          repositioning=false;
           reticle.visible=false;
           if(placeButton)placeButton.classList.add('hidden');
           if(repositionButton)repositionButton.classList.remove('hidden');
-          $('#statusText').textContent='🐾 Pet apareceu à sua frente!';
+          $('#statusText').textContent=lookingDown
+            ? '🐾 Pet apareceu no modo de visão para o chão!'
+            : '🐾 Pet apareceu à sua frente!';
         }else{
           $('#statusText').textContent='Aguardando posição da câmera AR…';
         }
