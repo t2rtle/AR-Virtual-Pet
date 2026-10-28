@@ -3,3 +3,7 @@
 body.immersive-ar-active,body.immersive-ar-active #app{background:transparent!important}
 body.immersive-ar-active .gameScreen.immersive-ar{background:transparent!important;isolation:auto!important}
 body.immersive-ar-active .gameScreen.immersive-ar canvas{background:transparent!important;opacity:1!important;mix-blend-mode:normal!important}
+
+/* AR placement control appears only after a real surface is detected. */
+.placePetBtn{position:fixed;z-index:25;left:50%;bottom:calc(82px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(280px,82vw);padding:14px 18px;border:1px solid rgba(255,255,255,.28);border-radius:16px;background:rgba(117,136,255,.96);color:#fff;font:800 15px system-ui,sans-serif;box-shadow:0 8px 28px rgba(0,0,0,.28);cursor:pointer;touch-action:manipulation}
+body.immersive-ar-active .placePetBtn{z-index:35;pointer-events:auto}
