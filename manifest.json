@@ -1,0 +1,14 @@
+{
+  "name":"AR Virtual Pet",
+  "short_name":"AR Pet",
+  "description":"Um pet 3D virtual para brincar no seu mundo com realidade aumentada.",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "orientation":"portrait",
+  "background_color":"#070a10",
+  "theme_color":"#101522",
+  "icons":[
+    {"src":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='120' fill='%23101522'/%3E%3Ccircle cx='256' cy='270' r='150' fill='%239d8cff'/%3E%3Ccircle cx='205' cy='245' r='18' fill='%2311131a'/%3E%3Ccircle cx='307' cy='245' r='18' fill='%2311131a'/%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
