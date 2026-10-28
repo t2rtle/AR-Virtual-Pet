@@ -9,7 +9,8 @@ let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, h
 const basePetY = .05;
 const AR_PET_HEIGHT_METERS = 0.10; // altura-alvo: 10 cm no mundo AR
 let AR_PET_SCALE = 0.05; // recalculada pela caixa real do modelo depois da criação
-let placeButton, repositionButton, surfaceFound = false, repositioning = false;
+let placeButton, repositionButton, followAimButton, surfaceFound = false, repositioning = false;
+let cameraFollowMode = false;
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
 function decay(){ const h=Math.min(24,Math.max(0,(Date.now()-state.last)/3600000)); state.hunger=Math.max(0,state.hunger-h*4); state.mood=Math.max(0,state.mood-h*2); state.energy=Math.max(0,state.energy-h*3); state.clean=Math.max(0,state.clean-h*1.5); save(); updateUI(); }
@@ -216,8 +217,10 @@ function init3D(){
   reticle.rotation.x=-Math.PI/2;reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
   placeButton=$('#placePetBtn');
   repositionButton=$('#repositionPetBtn');
+  followAimButton=$('#followAimBtn');
   placeButton?.addEventListener('click',placePet);
   repositionButton?.addEventListener('click',repositionPet);
+  followAimButton?.addEventListener('click',toggleCameraFollowMode);
   renderer.xr.addEventListener('sessionstart',()=>{
     $('#game').classList.add('immersive-ar');
     document.body.classList.add('immersive-ar-active');
@@ -230,6 +233,7 @@ function init3D(){
     placed=false;
     repositioning=false;
     surfaceFound=false;
+    cameraFollowMode=false;
     pet.visible=false;
     reticle.visible=false;
     if(placeButton)placeButton.classList.add('hidden');
@@ -239,6 +243,7 @@ function init3D(){
       repositionButton.textContent='📍 Mostrar / reposicionar pet';
       repositionButton.classList.remove('hidden');
     }
+    if(followAimButton){followAimButton.classList.add('hidden');followAimButton.textContent='🎯 Seguir mira: desligado';}
     hitTestSource=null;hitTestSourceRequested=false;
     const session=renderer.xr.getSession();
     session.addEventListener('select',placePet);
@@ -246,9 +251,10 @@ function init3D(){
       $('#game').classList.remove('immersive-ar');
       document.body.classList.remove('immersive-ar-active');
       floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);
-      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;
+      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;cameraFollowMode=false;
       if(placeButton)placeButton.classList.add('hidden');
       if(repositionButton)repositionButton.classList.add('hidden');
+      if(followAimButton)followAimButton.classList.add('hidden');
     },{once:true});
     $('#statusText').textContent='Procure o chão movendo o celular devagar';
     toast('Aponte para o chão e mova o celular lentamente');
@@ -305,8 +311,22 @@ function placePet(){
   surfaceFound = false;
   if(placeButton)placeButton.classList.add('hidden');
   if(repositionButton)repositionButton.classList.remove('hidden');
+  if(followAimButton){followAimButton.textContent=`🎯 Seguir mira: ${cameraFollowMode?'ligado':'desligado'}`;followAimButton.classList.remove('hidden');}
   vibrate(35);tone();toast(wasRepositioning ? `${state.name} foi reposicionado! 🐾` : `${state.name} chegou! 🐾`);
   $('#statusText').textContent = `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
+}
+
+function toggleCameraFollowMode(){
+  if(!renderer?.xr.isPresenting || !pet || !placed)return;
+  cameraFollowMode=!cameraFollowMode;
+  if(cameraFollowMode){
+    pet.visible=true;
+    toast('🎯 Mochi agora acompanha a mira vertical e horizontal');
+  }else{
+    // The current position is retained, so the pet stays in the real world.
+    toast('🐾 Mochi ficará parado no local atual');
+  }
+  if(followAimButton)followAimButton.textContent=`🎯 Seguir mira: ${cameraFollowMode?'ligado':'desligado'}`;
 }
 
 function repositionPet(){
@@ -324,6 +344,7 @@ function repositionPet(){
 
   // Keep the pet along the actual viewing ray. Flattening the direction made it
   // leave the camera view when the phone was pointed down at the floor.
+  cameraFollowMode=false;
   pet.position.copy(cameraPosition).addScaledVector(cameraDirection,0.72);
   pet.position.y=Math.max(0.06,pet.position.y-0.04);
   pet.scale.setScalar(AR_PET_SCALE);
@@ -338,6 +359,7 @@ function repositionPet(){
   surfaceFound=false;
   if(placeButton)placeButton.classList.add('hidden');
   if(repositionButton){repositionButton.textContent='📍 Mostrar / reposicionar pet';repositionButton.classList.remove('hidden');}
+  if(followAimButton){followAimButton.textContent='🎯 Seguir mira: desligado';followAimButton.classList.remove('hidden');}
   vibrate(35);tone();toast('🐾 Pet reposicionado na sua visão!');
   $('#statusText').textContent=`${state.name} está à sua frente — toque em reposicionar quando quiser`;
 }
@@ -430,6 +452,7 @@ function render(time,frame){
           reticle.visible=false;
           if(placeButton)placeButton.classList.add('hidden');
           if(repositionButton)repositionButton.classList.remove('hidden');
+          if(followAimButton){followAimButton.textContent=`🎯 Seguir mira: ${cameraFollowMode?'ligado':'desligado'}`;followAimButton.classList.remove('hidden');}
           $('#statusText').textContent=lookingDown
             ? '🐾 Pet apareceu no modo de visão para o chão!'
             : '🐾 Pet apareceu à sua frente!';
@@ -439,9 +462,28 @@ function render(time,frame){
       }
     }
   }
+  if(renderer.xr.isPresenting && frame && placed && cameraFollowMode){
+    const refSpace=renderer.xr.getReferenceSpace();
+    let pose=null;
+    try{pose=refSpace ? frame.getViewerPose(refSpace) : null;}catch(err){console.warn('Não foi possível atualizar a mira AR:',err);}
+    if(pose){
+      const p=pose.transform.position;
+      const q=pose.transform.orientation;
+      const cameraPosition=new THREE.Vector3(p.x,p.y,p.z);
+      const cameraRotation=new THREE.Quaternion(q.x,q.y,q.z,q.w);
+      const forward=new THREE.Vector3(0,0,-1).applyQuaternion(cameraRotation).normalize();
+      // Follow the full 3D viewing ray: pitch (vertical) and yaw (horizontal).
+      pet.position.copy(cameraPosition).addScaledVector(forward,0.72);
+      pet.scale.setScalar(AR_PET_SCALE);
+      pet.rotation.set(0,0,0);
+      pet.rotation.y=Math.atan2(cameraPosition.x-pet.position.x,cameraPosition.z-pet.position.z);
+      pet.visible=true;
+      pet.updateMatrixWorld(true);
+    }
+  }
   if(pet && pet.visible){
     if(!placed)pet.position.y=basePetY+Math.sin(s*2.1)*.018;
-    pet.rotation.y=Math.sin(s*.45)*.08;
+    if(!cameraFollowMode && !placed)pet.rotation.y=Math.sin(s*.45)*.08;
   }
   renderer.render(scene,camera);
 }
