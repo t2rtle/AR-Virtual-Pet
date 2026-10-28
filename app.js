@@ -110,13 +110,13 @@ function render(time,frame){
       hitTestSourceRequested=true;
     }
     if(!placed && ref){
-      let targetMatrix=null;
+      let targetMatrix=null, surfaceDetected=false;
       // Prefer a real detected surface when WebXR hit-test is available.
       if(hitTestSource){
         const hits=frame.getHitTestResults(hitTestSource);
         if(hits.length){
           const pose=hits[0].getPose(ref);
-          if(pose) targetMatrix=new THREE.Matrix4().fromArray(pose.transform.matrix);
+          if(pose){targetMatrix=new THREE.Matrix4().fromArray(pose.transform.matrix);surfaceDetected=true;}
         }
       }
       // Fallback: some Android browser/device combinations provide camera passthrough
@@ -148,7 +148,7 @@ function render(time,frame){
         reticle.visible=true;
         surfaceFound=true;
         if(placeButton){
-          placeButton.textContent=hitTestSource?'🐾 Colocar pet aqui':'🐾 Colocar pet à frente';
+          placeButton.textContent=surfaceDetected?'🐾 Colocar pet aqui':'🐾 Colocar pet à frente';
           placeButton.classList.remove('hidden');
         }
       }
