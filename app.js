@@ -92,12 +92,11 @@ function placePet(){
   // origin is at its center. Raise it by half its measured model height so it
   // stands above the detected surface instead of intersecting the floor.
   const surface = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
-  const surfaceRotation = new THREE.Quaternion().setFromRotationMatrix(reticle.matrix);
-  const modelHeight = 0.82 * pet.scale.y;
+  pet.scale.setScalar(AR_PET_SCALE);
+  const modelHeight = 1.14 * pet.scale.y;
   pet.position.copy(surface);
   pet.position.y += modelHeight * 0.5 + 0.025;
   pet.quaternion.identity();
-  pet.scale.setScalar(1.15);
 
   // Make the placement immediately visible and ensure every mesh is renderable.
   pet.traverse(node => {
