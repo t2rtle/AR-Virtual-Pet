@@ -234,6 +234,7 @@ function init3D(){
     pet.visible=false;
     reticle.visible=false;
     if(placeButton)placeButton.classList.add('hidden');
+    if(repositionButton)repositionButton.classList.add('hidden');
     hitTestSource=null;hitTestSourceRequested=false;
     const session=renderer.xr.getSession();
     session.addEventListener('select',placePet);
@@ -243,6 +244,7 @@ function init3D(){
       floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);
       reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;
       if(placeButton)placeButton.classList.add('hidden');
+      if(repositionButton)repositionButton.classList.add('hidden');
     },{once:true});
     $('#statusText').textContent='Procure o chão movendo o celular devagar';
     toast('Aponte para o chão e mova o celular lentamente');
@@ -302,6 +304,35 @@ function placePet(){
   }
   vibrate(35);tone();toast(repositioning ? `${state.name} foi reposicionado! 🐾` : `${state.name} chegou! 🐾`);
   $('#statusText').textContent = `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
+}
+
+function repositionPet(){
+  if(!renderer?.xr.isPresenting || !pet)return;
+  // Move the pet into the current camera view, close enough to be visible.
+  // The action only runs after an explicit tap; normal AR placement is unchanged.
+  const xrCamera=renderer.xr.getCamera(camera);
+  const cameraPosition=new THREE.Vector3();
+  const cameraDirection=new THREE.Vector3();
+  xrCamera.getWorldPosition(cameraPosition);
+  xrCamera.getWorldDirection(cameraDirection);
+  cameraDirection.y=0;
+  if(cameraDirection.lengthSq()<0.0001)cameraDirection.set(0,0,-1);
+  cameraDirection.normalize();
+  pet.position.copy(cameraPosition).addScaledVector(cameraDirection,0.68);
+  pet.position.y=Math.max(0.08,cameraPosition.y-0.42);
+  pet.scale.setScalar(AR_PET_SCALE);
+  pet.rotation.set(0,0,0);
+  // Turn the parrot toward the viewer while keeping it inside the current view.
+  pet.rotation.y=Math.atan2(cameraDirection.x,cameraDirection.z)+Math.PI;
+  pet.visible=true;
+  pet.updateMatrixWorld(true);
+  placed=true;
+  reticle.visible=false;
+  surfaceFound=false;
+  if(placeButton)placeButton.classList.add('hidden');
+  if(repositionButton)repositionButton.classList.remove('hidden');
+  vibrate(35);tone();toast('🐾 Pet reposicionado perto de você!');
+  $('#statusText').textContent=`${state.name} está perto de você — toque em reposicionar quando quiser`;
 }
 
 function render(time,frame){
