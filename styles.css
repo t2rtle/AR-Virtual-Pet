@@ -50,3 +50,80 @@ button:focus-visible{outline:2px solid var(--jade-bright);outline-offset:3px}
   .actionHeading{padding-bottom:4px}
   .toast{bottom:100px}
 }
+
+
+/* Layout safety pass: reserve separate lanes so controls never cover each other. */
+@media (max-width: 699px) {
+  .stats {
+    left: 12px;
+    right: auto;
+    width: min(220px, calc(100vw - 88px));
+    min-width: 0;
+  }
+  .stats div:not(.statsHeading) > span { font-size: 10px; }
+  .repositionPetBtn, .followAimBtn {
+    right: 12px;
+    width: min(148px, calc(100vw - 32px));
+    min-height: 42px;
+    padding: 9px 10px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  .repositionPetBtn { top: 132px; }
+  .followAimBtn { top: 184px; }
+  .exit {
+    top: 12px;
+    right: 12px;
+  }
+  .placePetBtn {
+    bottom: calc(178px + env(safe-area-inset-bottom));
+    width: min(300px, calc(100vw - 32px));
+  }
+  #xrButton {
+    bottom: calc(178px + env(safe-area-inset-bottom)) !important;
+    width: min(300px, calc(100vw - 32px)) !important;
+  }
+  .actions {
+    gap: 8px;
+    padding: 11px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .actions button { min-height: 76px; }
+  .toast { bottom: calc(250px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 420px) {
+  .stats {
+    width: calc(100vw - 88px);
+    padding: 10px;
+    gap: 9px 8px;
+  }
+  .statsHeading { letter-spacing: .8px; font-size: 9px; }
+  .stats div:not(.statsHeading) > span { font-size: 9px; }
+  .stats b { font-size: 12px; }
+  .repositionPetBtn, .followAimBtn {
+    right: 10px;
+    width: 132px;
+    font-size: 10px;
+  }
+  .repositionPetBtn { top: 124px; }
+  .followAimBtn { top: 174px; }
+  .actions { left: 8px; right: 8px; gap: 6px; padding: 9px; }
+  .actions button { padding: 8px 2px; min-height: 72px; }
+}
+@media (max-height: 700px) and (max-width: 699px) {
+  .stats { top: 68px; }
+  .repositionPetBtn { top: 116px; }
+  .followAimBtn { top: 164px; }
+  .actions { padding: 7px; gap: 5px; }
+  .actions button { min-height: 64px; }
+  .actionIcon { margin-bottom: 3px; }
+  .placePetBtn, #xrButton { bottom: calc(150px + env(safe-area-inset-bottom)) !important; }
+  .toast { bottom: calc(218px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 700px) {
+  .stats { width: 310px; }
+  .repositionPetBtn { top: 84px; }
+  .followAimBtn { top: 138px; }
+  .placePetBtn { bottom: 170px; }
+  #xrButton { bottom: 170px !important; }
+}
