@@ -2,6 +2,7 @@
 // Replaces the old generic teddy-bear-style stat loop with a lightweight
 // pirate-parrot progression system while leaving the AR/3D engine untouched.
 const SAVE_KEY = 'mochiPirateSaveV1';
+let lastRenderedName = 'Mochi';
 
 const $p = s => document.querySelector(s);
 let toastTimer = null;
@@ -22,7 +23,7 @@ function load(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}') || {}; } catch {}
   const base = {
-    name: old.name || 'Mochi',
+    name: old.name || 'Pisco',
     hunger: 82,
     mood: 86,
     energy: 74,
@@ -40,6 +41,8 @@ function load(){
     vibration: old.vibration !== false
   };
   game = Object.assign(base, saved);
+  if (!game.name || game.name === 'Mochi') game.name = 'Pisco';
+  lastRenderedName = 'Mochi';
   applyOfflineTime();
   save();
 }
@@ -104,6 +107,27 @@ function ensureProgressUI(){
     <div class="pirateMeta"><span id="pirateLevel">Nível 1</span><span id="pirateRations">🍖 6/6 rações</span></div>`;
   heading?.insertAdjacentElement('afterend', progress);
 }
+function syncDisplayedName(){
+  const previous = lastRenderedName || 'Mochi';
+  const next = game.name || 'Pisco';
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  for(const node of nodes){
+    if(node.parentElement?.closest('#petName')) continue;
+    if(node.nodeValue.includes(previous) || node.nodeValue.includes('Mochi'))
+      node.nodeValue = node.nodeValue.split(previous).join(next).split('Mochi').join(next);
+  }
+  document.querySelectorAll('[title],[aria-label],[placeholder],meta[name="description"]').forEach(el=>{
+    for(const attr of ['title','aria-label','placeholder','content']){
+      if(!el.hasAttribute(attr)) continue;
+      const value=el.getAttribute(attr);
+      if(value.includes(previous) || value.includes('Mochi')) el.setAttribute(attr,value.split(previous).join(next).split('Mochi').join(next));
+    }
+  });
+  document.title = document.title.split(previous).join(next).split('Mochi').join(next);
+  lastRenderedName = next;
+}
 function updateUI(){
   ensureProgressUI();
   bar('hunger', game.hunger);
@@ -124,6 +148,9 @@ function updateUI(){
   if(status) status.textContent = `${game.name} está pronto para zarpar, marujo!`;
   const name = $p('#petName');
   if(name && document.activeElement !== name) name.value = game.name;
+  syncDisplayedName();
+  try { const old=JSON.parse(localStorage.getItem('arPetSave')||'{}'); old.name=game.name; localStorage.setItem('arPetSave',JSON.stringify(old)); } catch {}
+  window.dispatchEvent(new CustomEvent('petnamechange',{detail:game.name}));
 }
 function playSound(){
   if(!game.sound) return;
@@ -145,15 +172,15 @@ function finish(message, xp=0){
 function action(type){
   if(type === 'feed'){
     if(game.rations <= 0){ pirateToast('🥥 A despensa está vazia! Encontre um tesouro ou espere a próxima reposição.'); return; }
-    if(game.hunger >= 96){ pirateToast('🍗 Mochi já está de barriga cheia!'); return; }
+    if(game.hunger >= 96){ pirateToast(`🍗 ${game.name} já está de barriga cheia!`); return; }
     game.rations--;
     game.hunger = clamp(game.hunger + 24);
     game.mood = clamp(game.mood + 5);
-    finish(`🍍 Mochi devorou uma ração tropical! Restam ${game.rations}.`, 12);
+    finish(`🍍 ${game.name} devorou uma ração tropical! Restam ${game.rations}.`, 12);
     return;
   }
   if(type === 'play'){
-    if(game.energy < 12){ pirateToast('😴 Mochi está sem energia. Deixe o capitão descansar um pouco.'); return; }
+    if(game.energy < 12){ pirateToast(`😴 ${game.name} está sem energia. Deixe o capitão descansar um pouco.`); return; }
     game.energy = clamp(game.energy - 12);
     game.mood = clamp(game.mood + 14);
     game.hunger = clamp(game.hunger - 5);
@@ -162,22 +189,22 @@ function action(type){
     if(treasure){
       const loot = 4 + Math.floor(Math.random() * 9);
       game.doubloons += loot;
-      finish(`🗺️ Treino de voo! Mochi encontrou ${loot} dobrões num baú perdido.`, 22);
+      finish(`🗺️ Treino de voo! ${game.name} encontrou ${loot} dobrões num baú perdido.`, 22);
     } else {
-      finish('🦜 Mochi treinou o voo e fez uma ronda pelo convés!', 20);
+      finish(`🦜 ${game.name} treinou o voo e fez uma ronda pelo convés!`, 20);
     }
     return;
   }
   if(type === 'pet'){
     game.mood = clamp(game.mood + 10);
     game.bond += 8;
-    finish('❤️ Mochi recebeu carinho do capitão. Laço +8!', 8);
+    finish(`❤️ ${game.name} recebeu carinho do capitão. Laço +8!`, 8);
     return;
   }
   if(type === 'clean'){
     game.clean = clamp(game.clean + 28);
     game.mood = clamp(game.mood + 5);
-    finish('🌊 Banho de mar concluído! Mochi está pronto para o próximo porto.', 10);
+    finish(`🌊 Banho de mar concluído! ${game.name} está pronto para o próximo porto.`, 10);
   }
 }
 function bindActions(){
@@ -205,7 +232,7 @@ function bindSettings(){
   const name = $p('#petName');
   if(name){
     name.value = game.name;
-    name.oninput = e => { game.name = e.target.value.trim().slice(0,18) || 'Mochi'; save(); updateUI(); };
+    name.oninput = e => { game.name = e.target.value.trim().slice(0,18) || 'Pisco'; save(); updateUI(); };
   }
   const sound = $p('#soundToggle');
   if(sound){ sound.checked = game.sound; sound.onchange = e => { game.sound = e.target.checked; save(); }; }
