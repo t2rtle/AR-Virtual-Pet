@@ -5,6 +5,7 @@ const $ = s => document.querySelector(s);
 let saved = null;
 try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {}
 const state = Object.assign({ name:'Pisco', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
+if (!state.name || state.name === 'Mochi') state.name = 'Pisco';
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
 const basePetY = .05;
 const AR_PET_HEIGHT_METERS = 0.10; // altura-alvo: 10 cm no mundo AR
@@ -382,7 +383,7 @@ function toggleCameraFollowMode(){
       toast('🐾 Pet encaixado na superfície detectada!');
     }else{
       captureAnchoredPose();
-      toast('⚓ Modo Ancorado ativado — Mochi ficou neste local');
+      toast('⚓ Modo Ancorado ativado — o pet ficou neste local');
     }
   }
   if(followAimButton){
@@ -613,7 +614,11 @@ document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>action(b.dat
 $('#settingsBtn').onclick=()=>$('#settings').classList.remove('hidden');
 $('#closeSettings').onclick=()=>$('#settings').classList.add('hidden');
 $('#petName').value=state.name;
-$('#petName').oninput=e=>{state.name=e.target.value.trim()||'Pisco';save();updateUI();};
+$('#petName').addEventListener('input', e => {
+  state.name = e.target.value.trim().slice(0,18) || 'Pisco';
+  save();
+  updateUI();
+});
 $('#soundToggle').checked=state.sound;$('#soundToggle').onchange=e=>{state.sound=e.target.checked;save();};
 $('#vibrationToggle').checked=state.vibration;$('#vibrationToggle').onchange=e=>{state.vibration=e.target.checked;save();};
 $('#resetBtn').onclick=()=>{localStorage.removeItem('arPetSave');location.reload();};
