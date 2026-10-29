@@ -658,3 +658,20 @@ button:focus-visible{outline:2px solid var(--jade-bright);outline-offset:3px}
 .qualitySetting{display:block;margin:16px 0 8px;color:#c5d6cb;font-size:13px;}
 .qualitySetting select{display:block;width:100%;margin-top:8px;padding:12px;border:1px solid rgba(243,198,107,.28);border-radius:12px;background:#102b2b;color:#fff0d0;min-height:44px;}
 .qualityNote{margin:7px 0 14px;color:#9fb8ad;font-size:11px;line-height:1.5;}
+
+
+/* Lower tiers reduce expensive decorative effects while keeping text readable. */
+:root[data-video-quality="140"] .glass,
+:root[data-video-quality="140"] .hero,
+:root[data-video-quality="140"] .dialog,
+:root[data-video-quality="280"] .glass,
+:root[data-video-quality="280"] .hero,
+:root[data-video-quality="280"] .dialog {
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:0 3px 9px rgba(0,0,0,.16)!important;
+}
+:root[data-video-quality="140"] .petOrb{animation:none!important;box-shadow:none!important;}
+:root[data-video-quality="140"] .hero:before,
+:root[data-video-quality="140"] .hero:after{display:none!important;}
+:root[data-video-quality="140"] .actions button,
+:root[data-video-quality="280"] .actions button{transition:none!important;}
