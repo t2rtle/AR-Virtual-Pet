@@ -1,5 +1,5 @@
-const CACHE='ar-pet-v32';
-const CORE=['./','./index.html','./styles.css','./pirate-gameplay.css','./app.js','./idle-animation.js','./pirate-gameplay.js','./manifest.json'];
+const CACHE='ar-pet-v33';
+const CORE=['./','./index.html','./styles.css','./responsive.css','./pirate-gameplay.css','./app.js','./idle-animation.js','./pirate-gameplay.js','./desktop-ar.js','./manifest.json'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('ar-pet-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==location.origin)return;event.respondWith(fetch(event.request).then(response=>{if(response&&response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));}return response;}).catch(()=>caches.match(event.request).then(cached=>cached||caches.match('./'))));});
