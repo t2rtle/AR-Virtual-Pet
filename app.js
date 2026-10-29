@@ -243,7 +243,12 @@ function createPet(){
 }
 
 function init3D(){
-  if(renderer)return;
+  if(renderer && pet)return;
+  // Recover cleanly if a previous initialization stopped halfway through pet creation.
+  if(renderer && !pet){
+    try{renderer.setAnimationLoop(null);renderer.dispose();}catch{}
+    renderer=null;scene=null;camera=null;floor=null;clock=null;reticle=null;
+  }
   scene=new THREE.Scene();
   // A transparent scene is essential: during immersive AR, the device camera must show through.
   scene.background=null;
@@ -670,6 +675,8 @@ async function startAR(){
       document.body.appendChild(arButton);
     }
     status.textContent='Pronto para iniciar AR';
+    $('#arError').classList.add('hidden');
+    $('#arError').textContent='';
     toast('⚓ Toque no botão dourado para abrir o portal dos Sete Mares');
   }catch(error){
     console.error('Falha ao preparar AR/Pisco:',error);
@@ -677,11 +684,18 @@ async function startAR(){
       $('#game').classList.add('hidden');
       $('#home').classList.remove('hidden');
     }
+    if(renderer && !pet){
+      try{renderer.setAnimationLoop(null);renderer.dispose();}catch{}
+      renderer=null;scene=null;camera=null;floor=null;clock=null;reticle=null;
+    }
     const message=error?.message || 'Falha desconhecida ao preparar a realidade aumentada.';
     status.textContent='AR indisponível: verifique o navegador, a câmera e os serviços de realidade aumentada.';
-    fallback.classList.remove('hidden');
-    fallback.querySelector('strong').textContent='🧭 Não foi possível iniciar a realidade aumentada';
-    fallback.querySelector('span').textContent=message+' Abra o site em HTTPS, permita a câmera e use um dispositivo/navegador compatível com AR.';
+    const errorPanel=$('#arError');
+    if(errorPanel){
+      errorPanel.textContent=message+' Confirme as permissões da câmera e tente em um dispositivo/navegador compatível com AR.';
+      errorPanel.classList.remove('hidden');
+    }
+    fallback.classList.add('hidden');
     toast('Não foi possível iniciar a realidade aumentada.');
   }
 }
