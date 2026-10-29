@@ -474,7 +474,7 @@ async function startHandTracking(){
     handVideo=document.createElement('video');
     handVideo.setAttribute('playsinline',''); handVideo.muted=true; handVideo.autoplay=true;
     handVideo.style.cssText='position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;left:-10px;top:-10px';
-    document.body.appendChild(handVideo);
+    $('#game').appendChild(handVideo);
     handStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'environment',width:{ideal:640},height:{ideal:480}}});
     handVideo.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;object-fit:cover;opacity:1;pointer-events:none;z-index:0;background:#000';
     handVideo.srcObject=handStream;
