@@ -254,8 +254,9 @@ function init3D(){
   scene.background=null;
   camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.01,100);
   camera.position.set(0,.65,1.8);
-  renderer=new THREE.WebGLRenderer({canvas:$('#scene'),antialias:true,alpha:true,premultipliedAlpha:false,powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  const isMobileDevice=matchMedia('(max-width: 767px)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
+  renderer=new THREE.WebGLRenderer({canvas:$('#scene'),antialias:!isMobileDevice,alpha:true,premultipliedAlpha:false,powerPreference:isMobileDevice?'low-power':'high-performance'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,isMobileDevice?1:1.25));
   renderer.setSize(innerWidth,innerHeight);
   renderer.setClearColor(0x000000,0);
   renderer.setClearAlpha(0);
@@ -295,7 +296,7 @@ function init3D(){
   followAimButton?.addEventListener('click',toggleCameraFollowMode);
   renderer.xr.addEventListener('sessionstart',()=>{
     $('#game').classList.add('immersive-ar');
-    setHudMode('normal');
+    setHudMode('compact');
     document.body.classList.add('immersive-ar-active');
     // Reassert a fully transparent WebGL surface for the AR camera passthrough.
     renderer.setClearColor(0x000000,0);
@@ -702,7 +703,8 @@ function render(time,frame){
     pet.updateMatrixWorld(true);
   }
   if(pet && pet.visible){
-    if(!placed)pet.position.y=basePetY+Math.sin(s*2.1)*.018;
+    if(typeof pet.userData.updateAnimation==='function')pet.userData.updateAnimation(s);
+    if(!placed)pet.position.y=basePetY+Math.sin(s*1.45)*.012;
     if(!cameraFollowMode && !placed)pet.rotation.y=Math.sin(s*.45)*.08;
   }
   if(pet && placed && roamingMode) updateRoaming(s);
