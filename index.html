@@ -21,5 +21,28 @@
     <div id="settings" class="modal hidden"><div class="dialog glass"><button id="closeSettings" class="close" aria-label="Fechar">✕</button><p class="eyebrow">⚙️ AJUSTES DO NAVIO</p><h2>Configurações</h2><label>Nome do papagaio<input id="petName" maxlength="18" placeholder="Pisco"></label><label class="toggleRow"><span>🔔 Sons do convés</span><input id="soundToggle" type="checkbox" checked></label><label class="toggleRow"><span>📳 Vibração</span><input id="vibrationToggle" type="checkbox" checked></label><button id="resetBtn" class="danger">↻ Recomeçar aventura</button></div></div>
   </div>
   <script type="module" src="idle-animation.js"></script><script type="module" src="app.js"></script><script type="module" src="pirate-gameplay.js"></script><script type="module" src="desktop-ar.js"></script>
+  <script>
+    // Recovery path for browsers where the main ES module failed before binding buttons.
+    document.addEventListener('click', async function(event) {
+      const start = event.target.closest('#startBtn');
+      const preview = event.target.closest('#previewBtn');
+      if (!start && !preview) return;
+      const actionName = start ? '__piscoStartAR' : '__piscoPreview';
+      if (typeof window[actionName] === 'function') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const status = document.querySelector('#statusText');
+      try {
+        const module = await import('./app.js?recovery=' + Date.now());
+        const action = module && window[actionName];
+        if (typeof action !== 'function') throw new Error('A ação de inicialização não foi registrada.');
+        await action();
+      } catch (error) {
+        console.error('Não foi possível iniciar a aventura:', error);
+        if (status) status.textContent = 'Falha ao iniciar. Confira a conexão e recarregue a página.';
+        window.alert('O Pisco não conseguiu iniciar. Recarregue a página com a internet ligada. Se continuar, abra o site no Chrome ou Samsung Browser atualizado.');
+      }
+    }, true);
+  </script>
 </body>
 </html>
