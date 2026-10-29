@@ -906,6 +906,8 @@ function action(type){
   save();updateUI();
 }
 
+window.__piscoStartAR = startAR;
+window.__piscoPreview = preview;
 $('#startBtn').onclick=startAR;
 $('#previewBtn').onclick=preview;
 $('#exitBtn').onclick=()=>{if(renderer?.xr.isPresenting)renderer.xr.getSession()?.end();$('#game').classList.add('hidden');$('#home').classList.remove('hidden');};
