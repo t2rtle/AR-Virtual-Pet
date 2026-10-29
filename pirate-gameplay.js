@@ -267,3 +267,17 @@ rewriteButtons();
 bindActions();
 bindSettings();
 updateUI();
+
+// Emergency startup guard: the home-screen buttons must never silently do nothing.
+// If the main AR module failed to initialize, show a clear recovery message.
+window.addEventListener('error', event => {
+  console.error('Falha no JavaScript do Pisco:', event.error || event.message);
+  const status = document.querySelector('#statusText');
+  if (status) status.textContent = 'O navegador encontrou um erro ao iniciar. Recarregue a página para tentar novamente.';
+});
+window.addEventListener('unhandledrejection', event => {
+  console.error('Falha assíncrona no Pisco:', event.reason);
+  const status = document.querySelector('#statusText');
+  if (status) status.textContent = 'Uma função não conseguiu iniciar. Recarregue a página e tente novamente.';
+});
+
