@@ -554,7 +554,7 @@ function stopHandTracking(){
     if(pet){pet.position.set(0,basePetY,0);pet.rotation.set(0,0,0);pet.visible=true;placed=false;}
   }
 }
-async function startHandCameraOverlay(){
+async async function startHandCameraOverlay(){
   if(!handFollowMode)return;
   try{
     init3D();
