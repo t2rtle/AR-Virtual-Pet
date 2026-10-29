@@ -190,7 +190,7 @@ function toggleDesktopMoveMode(){
   drag=false;
   updateDesktopModeButton();
   toast(desktopMoveMode
-    ? '🎯 Modo Mover ativado — arraste Mochi com o mouse.'
+    ? `🎯 Modo Mover ativado — arraste ${petDisplayName} com o mouse.`
     : `⚓ Modo Fixo ativado — ${petDisplayName} ficará neste ponto.`);
 }
 
