@@ -1,10 +1,8 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.1/build/three.module.js';
 
 // Desktop camera AR fallback.
-// WebXR immersive-ar is primarily exposed on AR-capable mobile/headset browsers;
-// desktop browsers with a normal webcam often report immersive-ar as unsupported.
-// This fallback uses getUserMedia + a transparent Three.js overlay so PC users can
-// still see Mochi through their Logitech/webcam without requiring WebXR.
+// Desktop browsers with a normal webcam often report immersive-ar as unsupported.
+// This fallback uses getUserMedia + a transparent Three.js overlay.
 
 let stream = null;
 let video = null;
@@ -20,6 +18,7 @@ let lastX = 0;
 let lastY = 0;
 let yaw = 0;
 let pitch = 0;
+let desktopMoveMode = false;
 
 const $ = s => document.querySelector(s);
 
@@ -157,12 +156,14 @@ async function openDesktopCamera(){
   pet.position.set(0,.05,-1.25);
   scene.add(pet);
 
+  desktopMoveMode=false;
+  updateDesktopModeButton();
   $('#game')?.classList.remove('hidden');
   $('#game')?.classList.add('desktop-camera-ar');
   $('#arFallback')?.classList.add('hidden');
   $('#placePetBtn')?.classList.add('hidden');
   $('#repositionPetBtn')?.classList.remove('hidden');
-  $('#followAimBtn')?.classList.add('hidden');
+  $('#followAimBtn')?.classList.remove('hidden');
   document.body.classList.add('desktop-camera-active');
   active=true;
   resize();
@@ -171,35 +172,65 @@ async function openDesktopCamera(){
   render();
 }
 
+function updateDesktopModeButton(){
+  const button=$('#followAimBtn');
+  if(!button)return;
+  button.textContent=desktopMoveMode?'🎯 Modo: Mover':'⚓ Modo: Fixo';
+  button.setAttribute('aria-pressed',String(desktopMoveMode));
+  button.title=desktopMoveMode
+    ? 'Arraste Mochi com o mouse e use a roda para redimensionar.'
+    : 'Mochi está fixo. Ative Modo: Mover para reposicioná-lo com o mouse.';
+}
+
+function toggleDesktopMoveMode(){
+  if(!active || !pet)return;
+  desktopMoveMode=!desktopMoveMode;
+  drag=false;
+  updateDesktopModeButton();
+  toast(desktopMoveMode
+    ? '🎯 Modo Mover ativado — arraste Mochi com o mouse.'
+    : '⚓ Modo Fixo ativado — Mochi ficará neste ponto.');
+}
+
 function installControls(){
   const canvas=$('#scene');
   canvas.style.pointerEvents='auto';
-  canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture?.(e.pointerId);});
-  canvas.addEventListener('pointermove',e=>{
-    if(!drag || !pet)return;
+  canvas.onpointerdown=e=>{
+    if(!desktopMoveMode || !pet)return;
+    drag=true;
+    lastX=e.clientX;
+    lastY=e.clientY;
+    canvas.setPointerCapture?.(e.pointerId);
+  };
+  canvas.onpointermove=e=>{
+    if(!drag || !desktopMoveMode || !pet)return;
     yaw+=(e.clientX-lastX)*.008;
     pitch+=(e.clientY-lastY)*.006;
     pitch=Math.max(-.65,Math.min(.65,pitch));
     pet.rotation.y=yaw;
     pet.rotation.x=pitch;
-    lastX=e.clientX;lastY=e.clientY;
-  });
-  canvas.addEventListener('pointerup',()=>drag=false);
-  canvas.addEventListener('pointercancel',()=>drag=false);
-  canvas.addEventListener('wheel',e=>{
-    if(!active)return;
+    lastX=e.clientX;
+    lastY=e.clientY;
+  };
+  canvas.onpointerup=()=>drag=false;
+  canvas.onpointercancel=()=>drag=false;
+  canvas.onwheel=e=>{
+    if(!active || !desktopMoveMode)return;
     e.preventDefault();
     scale*=Math.exp(-e.deltaY*.001);
     scale=Math.max(.55,Math.min(2.2,scale));
     pet.scale.setScalar(.28*scale);
-  },{passive:false});
+  };
 
-  $('#repositionPetBtn')?.addEventListener('click',()=>{
+  $('#repositionPetBtn').onclick=()=>{
     if(!pet)return;
     pet.position.set(0,.05,-1.25);
-    yaw=0;pitch=0;pet.rotation.set(0,0,0);
+    yaw=0;
+    pitch=0;
+    pet.rotation.set(0,0,0);
     toast('🧭 Mochi voltou para o centro da câmera.');
-  },{once:true});
+  };
+  $('#followAimBtn').onclick=toggleDesktopMoveMode;
 }
 
 function render(){
@@ -236,7 +267,10 @@ function stopDesktopCamera(){
   document.body.classList.remove('desktop-camera-active');
   $('#game')?.classList.remove('desktop-camera-ar');
   $('#repositionPetBtn')?.classList.add('hidden');
+  $('#followAimBtn')?.classList.add('hidden');
   $('#scene').style.pointerEvents='none';
+  drag=false;
+  desktopMoveMode=false;
 }
 
 window.addEventListener('resize',resize);
