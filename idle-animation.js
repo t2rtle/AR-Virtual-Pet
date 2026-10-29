@@ -130,7 +130,7 @@ function installIdle(group) {
     lowerBeaks.forEach(beak => {
       const b = base.get(beak);
       const mouthOpen = reaction && reactionType === 'play' ? Math.max(0, Math.sin(t * 13)) * 0.012 : 0;
-      beak.position.y = b.position.y - mouthOpen;
+      beak.position.y -= mouthOpen;
     });
 
     if (chest) {
