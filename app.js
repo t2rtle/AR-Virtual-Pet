@@ -63,6 +63,7 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
 let hudMode = 'normal';
 function setHudMode(mode){
   hudMode = mode;
+  $('#game')?.setAttribute('data-hud-mode', mode);
   const game = $('#game');
   game.classList.toggle('hud-compact', mode === 'compact');
   game.classList.toggle('hud-hidden', mode === 'hidden');
@@ -677,7 +678,7 @@ function preview(){
   init3D();$('#home').classList.add('hidden');$('#game').classList.remove('hidden');
   $('#game').classList.remove('immersive-ar');document.body.classList.remove('immersive-ar-active');$('#arFallback').classList.remove('hidden');
   setHudMode('normal');
-  floor.visible=true;pet.visible=true;pet.scale.setScalar(AR_PET_SCALE * 2.15);pet.position.set(0,basePetY,0);placed=false;
+  floor.visible=true;pet.visible=true;pet.scale.setScalar(AR_PET_SCALE * 3.05);pet.position.set(0,basePetY,0);placed=false;
   toast('Modo de teste 3D iniciado');
 }
 function action(type){
