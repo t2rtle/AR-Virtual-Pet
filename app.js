@@ -21,6 +21,7 @@ let handCanvasContext = null;
 let handStream = null;
 let handTrackingBusy = false;
 let lastHandSeenAt = 0;
+let handLastUpdateAt = 0;
 let handTarget = new THREE.Vector3();
 let handTargetQuaternion = new THREE.Quaternion();
 let handTargetValid = false;
@@ -463,7 +464,7 @@ async function startHandTracking(){
     await handVideo.play();
     handCanvas=document.createElement('canvas'); handCanvas.width=640; handCanvas.height=480;
     handCanvasContext=handCanvas.getContext('2d',{willReadFrequently:false});
-    lastHandSeenAt=performance.now(); handTargetValid=false; handTrackingBusy=false;
+    lastHandSeenAt=performance.now(); handLastUpdateAt=lastHandSeenAt; handTargetValid=false; handTrackingBusy=false;
     toast('✋ Mostre a palma para a câmera — Pisco vai tentar pousar nela');
     return true;
   }catch(err){
@@ -480,7 +481,7 @@ function stopHandTracking(){
   handVideo=null;
   if(handLandmarker){try{handLandmarker.close();}catch{}}
   handLandmarker=null; handCanvas=null; handCanvasContext=null;
-  handTrackingBusy=false; handTargetValid=false;
+  handTrackingBusy=false; handTargetValid=false; handLastUpdateAt=0;
 }
 function updateHandTracking(s){
   if(!handFollowMode || !handLandmarker || !handVideo || handVideo.readyState<2 || handTrackingBusy)return;
@@ -500,7 +501,7 @@ function updateHandTracking(s){
         viewCamera.updateMatrixWorld(true);
         // Screen position is projected into a point in front of the XR camera.
         // Without a world-space hand pose/depth API, depth is approximated at 45 cm.
-        const ndcX=(.5-center.x)*2, ndcY=(.5-center.y)*2;
+        const ndcX=(center.x-.5)*2, ndcY=(.5-center.y)*2;
         const point=new THREE.Vector3(ndcX,ndcY,.15).unproject(viewCamera);
         const camPos=new THREE.Vector3(); viewCamera.getWorldPosition(camPos);
         const ray=point.sub(camPos).normalize();
@@ -513,7 +514,8 @@ function updateHandTracking(s){
       }
     }
     if(handTargetValid && now-lastHandSeenAt<900){
-      const dt=Math.min(.05,Math.max(.001,clock.getDelta()));
+      const dt=Math.min(.05,Math.max(.001,(now-handLastUpdateAt)/1000));
+      handLastUpdateAt=now;
       const distance=pet.position.distanceTo(handTarget);
       if(distance>.045){
         pet.position.lerp(handTarget,Math.min(1,dt*2.6));
