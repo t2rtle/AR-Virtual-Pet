@@ -445,9 +445,13 @@ async function startHandTracking(){
   if(handModeStarting)return false;
   handModeStarting=true;
   try{
+    // WebXR já controla a câmera traseira durante immersive-ar. Abrir outro
+    // getUserMedia aqui falha em Android/Samsung Browser/Chrome e pode deixar
+    // o reconhecimento preso. Não tentamos mais abrir uma segunda câmera.
+    if(renderer?.xr?.isPresenting){
+      throw new Error('A sessão AR já está usando a câmera. Este navegador não fornece um fluxo de imagem da câmera AR compatível com o rastreador de mãos.');
+    }
     if(!navigator.mediaDevices?.getUserMedia)throw new Error('Este navegador não permite acessar a câmera para reconhecer a mão.');
-    // MediaPipe runs locally in the browser. This extra camera stream is experimental:
-    // some mobile browsers cannot share the camera while immersive WebXR is active.
     const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
     const fileset=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
     handLandmarker=await vision.HandLandmarker.createFromOptions(fileset,{
@@ -470,7 +474,10 @@ async function startHandTracking(){
   }catch(err){
     console.warn('Reconhecimento de mão indisponível:',err);
     stopHandTracking();
-    toast('⚠️ Não consegui acessar a câmera para reconhecer a mão. Este navegador pode não permitir duas câmeras ao mesmo tempo no AR.');
+    const msg=renderer?.xr?.isPresenting
+      ? '⚠️ O modo Mão precisa de acesso aos frames da câmera AR, que este navegador não disponibiliza ao rastreador. Voltei ao modo Ancorado; use “Seguir mira” ou “Modo Livre”.'
+      : '⚠️ Não consegui acessar a câmera para reconhecer a mão. Verifique a permissão de câmera.';
+    toast(msg);
     return false;
   }finally{handModeStarting=false;}
 }
