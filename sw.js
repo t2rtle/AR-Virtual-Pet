@@ -1,4 +1,4 @@
-const CACHE='ar-pet-v42';
+const CACHE='ar-pet-v43';
 const CORE=['./','./index.html','./styles.css','./responsive.css','./pirate-gameplay.css','./app.js','./idle-animation.js','./pirate-gameplay.js','./desktop-ar.js','./manifest.json'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('ar-pet-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
