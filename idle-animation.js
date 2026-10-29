@@ -90,7 +90,7 @@ function installIdle(group) {
 
   group.userData.updateAnimation = (timeSeconds) => {
     try {
-      const t = (Number.isFinite(timeSeconds) ? timeSeconds : performance.now() * .001) * 0.82;
+      const t = Number.isFinite(timeSeconds) ? timeSeconds : performance.now() * .001;
       if (t >= nextSpecial && t >= specialUntil && !reactionUntil) triggerSpecial(t);
 
       const reaction = t < reactionUntil;
@@ -100,32 +100,32 @@ function installIdle(group) {
       const flightStrength = flying ? 1 : (reactionType === 'play' && reaction ? .82 : 0);
       const bodyBob = Math.sin(t * Math.PI * 1.55);
       const bodySway = Math.sin(t * Math.PI * 0.9);
-      const flightBob = flight ? Math.sin(t * 8.5) * .028 * flightStrength : 0;
-      const flightTilt = flight ? Math.sin(t * 5.7) * .10 * flightStrength : 0;
+      const flightBob = flight ? Math.sin(t * 5.2) * .018 * flightStrength : 0;
+      const flightTilt = flight ? Math.sin(t * 3.4) * .055 * flightStrength : 0;
 
       if (bodyMesh) {
         const b = base.get(bodyMesh);
         bodyMesh.position.y = b.position.y + bodyBob * .010 + flightBob;
         bodyMesh.rotation.z = b.rotation.z + bodySway * .018 + flightTilt;
-        bodyMesh.rotation.x = b.rotation.x + (flight ? Math.sin(t * 8.5) * .035 : Math.sin(t * 2.4 + .7) * .012);
+        bodyMesh.rotation.x = b.rotation.x + (flight ? Math.sin(t * 5.2) * .022 : Math.sin(t * 1.5 + .7) * .008);
       }
 
       let headDeltaZ = bodySway * .035 + Math.sin(t * 1.17) * .055;
       let headDeltaX = Math.sin(t * .85) * .012;
-      const nod = Math.pow(Math.max(0, Math.sin(t * .73 + 1.2)), 10) * .075;
-      const sleepyNod = !reaction && !flight && (t % 19) > 16.8 ? Math.sin((t % 19 - 16.8) * 1.5) * .12 : 0;
+      const nod = Math.pow(Math.max(0, Math.sin(t * .48 + 1.2)), 12) * .042;
+      const sleepyNod = !reaction && !flight && (t % 19) > 16.8 ? Math.sin((t % 24 - 21.5) * .9) * .055 : 0;
       headDeltaX += nod + sleepyNod;
 
       if (reaction) {
-        headDeltaZ += Math.sin(t * (reactionType === 'play' ? 7.2 : 5.4)) * (reactionType === 'play' ? .065 : .038);
+        headDeltaZ += Math.sin(t * (reactionType === 'play' ? 4.4 : 3.2)) * (reactionType === 'play' ? .035 : .022);
         if (reactionType === 'pet') headDeltaX -= .07;
         if (reactionType === 'feed') headDeltaX += .045;
-        if (reactionType === 'clean') headDeltaZ += Math.sin(t * 13) * .08;
+        if (reactionType === 'clean') headDeltaZ += Math.sin(t * 6.2) * .035;
       }
       if (special) {
-        if (specialType === 'lookout') headDeltaZ += Math.sin((t - (specialUntil - 1.55)) * 3.8) * .18;
-        if (specialType === 'salute') headDeltaZ += Math.sin(t * 7) * .08;
-        if (specialType === 'happy') headDeltaX += Math.abs(Math.sin(t * 6)) * .08;
+        if (specialType === 'lookout') headDeltaZ += Math.sin((t - (specialUntil - 1.55)) * 2.2) * .09;
+        if (specialType === 'salute') headDeltaZ += Math.sin(t * 4.2) * .04;
+        if (specialType === 'happy') headDeltaX += Math.abs(Math.sin(t * 3.8)) * .045;
         if (specialType === 'stretch') headDeltaX -= .10;
       }
 
@@ -147,7 +147,7 @@ function installIdle(group) {
 
       lowerBeaks.forEach(beak => {
         const b = base.get(beak);
-        const talking = reaction && (reactionType === 'play' || reactionType === 'feed') ? Math.max(0, Math.sin(t * 13)) * .014 : 0;
+        const talking = reaction && (reactionType === 'play' || reactionType === 'feed') ? Math.max(0, Math.sin(t * 7)) * .008 : 0;
         beak.position.y = b.position.y - talking;
         beak.scale.y = b.scale.y * (1 + talking * 3);
       });
@@ -164,10 +164,10 @@ function installIdle(group) {
       eyes.forEach(eye => { const b = base.get(eye); eye.scale.y = b.scale.y * (1 - blink * .92); });
       sparkles.forEach(sparkle => { const b = base.get(sparkle); sparkle.scale.y = b.scale.y * (1 - blink * .9); });
 
-      const cycleSpeed = flight ? 8.2 : (reaction ? 6.4 : 3.6);
+      const cycleSpeed = flight ? 5.6 : (reaction ? 4.1 : 2.5);
       const cycle = t * cycleSpeed;
       const wave = Math.sin(cycle);
-      const wingAmplitude = flight ? 1 : (reaction ? 1 : .12);
+      const wingAmplitude = flight ? .82 : (reaction ? .72 : .08);
       const lift = Math.max(0, wave);
       const down = Math.max(0, -wave);
 
@@ -207,19 +207,19 @@ function installIdle(group) {
       feet.forEach((foot, i) => {
         const b = base.get(foot);
         const tuck = flight ? .035 + Math.max(0, Math.sin(cycle)) * .012 : 0;
-        const hop = reactionType === 'play' && reaction ? Math.max(0, Math.sin(t * 10)) * .012 : 0;
+        const hop = reactionType === 'play' && reaction ? Math.max(0, Math.sin(t * 6.2)) * .007 : 0;
         foot.position.y = b.position.y + hop + bodyBob * .002 + tuck;
-        foot.rotation.z = b.rotation.z + (i === 0 ? -1 : 1) * (reaction ? Math.sin(t * 8) * .035 : 0);
+        foot.rotation.z = b.rotation.z + (i === 0 ? -1 : 1) * (reaction ? Math.sin(t * 4.8) * .022 : 0);
       });
       breastFeathers.forEach((feather, i) => {
         const b = base.get(feather);
-        const pulse = reactionType === 'pet' && reaction ? 1 + Math.max(0, Math.sin(t * 9 + i)) * .035 : 1;
+        const pulse = reactionType === 'pet' && reaction ? 1 + Math.max(0, Math.sin(t * 5.5 + i)) * .02 : 1;
         feather.scale.set(b.scale.x * pulse, b.scale.y * pulse, b.scale.z * pulse);
       });
       [hatBrim, hatCrown].forEach((hat, i) => {
         if (!hat) return;
         const b = base.get(hat);
-        hat.position.y = b.position.y + (flight ? Math.max(0, Math.sin(cycle - .5)) * .018 : 0) + (reaction ? Math.sin(t * 7 + i) * .008 : 0);
+        hat.position.y = b.position.y + (flight ? Math.max(0, Math.sin(cycle - .5)) * .018 : 0) + (reaction ? Math.sin(t * 4.2 + i) * .004 : 0);
       });
       if (!flight && specialType === 'stretch' && special) {
         wings.forEach((wing, i) => {
