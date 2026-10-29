@@ -1,8 +1,9 @@
-// Mochi — Pirate Life gameplay layer.
+// Pisco — Pirate Life gameplay layer.
 // Replaces the old generic teddy-bear-style stat loop with a lightweight
 // pirate-parrot progression system while leaving the AR/3D engine untouched.
-const SAVE_KEY = 'mochiPirateSaveV1';
-let lastRenderedName = 'Mochi';
+const SAVE_KEY = 'piscoPirateSaveV1';
+const LEGACY_SAVE_KEY = 'mochiPirateSaveV1';
+let lastRenderedName = 'Pisco';
 
 const $p = s => document.querySelector(s);
 let toastTimer = null;
@@ -21,7 +22,7 @@ function load(){
   let old = {};
   try { old = JSON.parse(localStorage.getItem('arPetSave') || '{}') || {}; } catch {}
   let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}') || {}; } catch {}
+  try { saved = JSON.parse(localStorage.getItem(SAVE_KEY) || localStorage.getItem(LEGACY_SAVE_KEY) || '{}') || {}; } catch {}
   const base = {
     name: old.name || 'Pisco',
     hunger: 82,
@@ -41,8 +42,11 @@ function load(){
     vibration: old.vibration !== false
   };
   game = Object.assign(base, saved);
-  if (!game.name || game.name === 'Mochi') game.name = 'Pisco';
-  lastRenderedName = 'Mochi';
+  // Prefer the gameplay save, then the shared app save; never revive the retired default.
+  const savedName = typeof saved.name === 'string' ? saved.name.trim() : '';
+  const sharedName = typeof old.name === 'string' ? old.name.trim() : '';
+  game.name = (savedName && savedName !== 'Mochi') ? savedName.slice(0,18) : (sharedName && sharedName !== 'Mochi' ? sharedName.slice(0,18) : 'Pisco');
+  lastRenderedName = 'Pisco';
   applyOfflineTime();
   save();
 }
@@ -84,7 +88,7 @@ function addXP(amount){
     game.energy = clamp(game.energy + 12);
     game.mood = clamp(game.mood + 8);
     leveled = true;
-    pirateToast(`🏴‍☠️ A bordo! Mochi alcançou o nível ${game.level}: ${rankFor(game.level)}!`);
+    pirateToast(`🏴‍☠️ A bordo! ${game.name} alcançou o nível ${game.level}: ${rankFor(game.level)}!`);
   }
   return leveled;
 }
@@ -108,7 +112,7 @@ function ensureProgressUI(){
   heading?.insertAdjacentElement('afterend', progress);
 }
 function syncDisplayedName(){
-  const previous = lastRenderedName || 'Mochi';
+  const previous = lastRenderedName || 'Pisco';
   const next = game.name || 'Pisco';
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const nodes = [];
