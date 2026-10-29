@@ -6,8 +6,13 @@ let saved = null;
 try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {}
 const QUALITY_KEY = 'piscoVideoQuality';
 document.documentElement.dataset.videoQuality = localStorage.getItem(QUALITY_KEY)||'420';
-const QUALITY_SCALE = { '140':0.18, '280':0.28, '420':0.42, '720':0.68, '1080':1, 'original':1.25 };
-function getQualityScale(){ const key=localStorage.getItem(QUALITY_KEY)||'420'; return QUALITY_SCALE[key]||QUALITY_SCALE['420']; }
+const QUALITY_HEIGHT = { '140':140, '280':280, '420':420, '720':720, '1080':1080 };
+function getQualityScale(){
+  const key=localStorage.getItem(QUALITY_KEY)||'420';
+  if(key==='original')return 1.25;
+  const target=QUALITY_HEIGHT[key]||420;
+  return Math.max(0.04,target/Math.max(1,innerWidth,innerHeight));
+}
 function applyRenderQuality(){
   if(!renderer)return;
   const isMobile=/Android|iPhone|iPad/i.test(navigator.userAgent)||matchMedia('(max-width: 767px)').matches;
@@ -807,7 +812,7 @@ const qualitySelect=$('#videoQuality');
 if(qualitySelect){
   qualitySelect.value=localStorage.getItem(QUALITY_KEY)||'420';
   qualitySelect.addEventListener('change',e=>{
-    const value=QUALITY_SCALE[e.target.value] ? e.target.value : '420';
+    const value=(e.target.value==='original'||QUALITY_HEIGHT[e.target.value]) ? e.target.value : '420';
     localStorage.setItem(QUALITY_KEY,value);
     document.documentElement.dataset.videoQuality=value;
     applyRenderQuality();
