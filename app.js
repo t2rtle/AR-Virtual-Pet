@@ -5,6 +5,7 @@ const $ = s => document.querySelector(s);
 let saved = null;
 try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {}
 const QUALITY_KEY = 'piscoVideoQuality';
+document.documentElement.dataset.videoQuality = localStorage.getItem(QUALITY_KEY)||'420';
 const QUALITY_SCALE = { '140':0.18, '280':0.28, '420':0.42, '720':0.68, '1080':1, 'original':1.25 };
 function getQualityScale(){ const key=localStorage.getItem(QUALITY_KEY)||'420'; return QUALITY_SCALE[key]||QUALITY_SCALE['420']; }
 function applyRenderQuality(){
@@ -808,6 +809,7 @@ if(qualitySelect){
   qualitySelect.addEventListener('change',e=>{
     const value=QUALITY_SCALE[e.target.value] ? e.target.value : '420';
     localStorage.setItem(QUALITY_KEY,value);
+    document.documentElement.dataset.videoQuality=value;
     applyRenderQuality();
     window.dispatchEvent(new CustomEvent('piscoqualitychange',{detail:{quality:value,scale:getQualityScale()}}));
     toast(value==='original'?'🎞️ Qualidade máxima disponível selecionada':`🎞️ Qualidade visual ajustada para ${value}p`);
