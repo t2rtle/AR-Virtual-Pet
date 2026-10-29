@@ -13,6 +13,18 @@ let AR_PET_SCALE = 0.05; // recalculada pela caixa real do modelo depois da cria
 let placeButton, repositionButton, followAimButton, surfaceFound = false, repositioning = false;
 let cameraFollowMode = false;
 let roamingMode = false;
+let handFollowMode = false;
+let handLandmarker = null;
+let handVideo = null;
+let handCanvas = null;
+let handCanvasContext = null;
+let handStream = null;
+let handTrackingBusy = false;
+let lastHandSeenAt = 0;
+let handTarget = new THREE.Vector3();
+let handTargetQuaternion = new THREE.Quaternion();
+let handTargetValid = false;
+let handModeStarting = false;
 let roamOrigin = new THREE.Vector3();
 let roamTarget = new THREE.Vector3();
 let roamNextTargetAt = 0;
@@ -279,6 +291,8 @@ function init3D(){
     surfaceFound=false;
     cameraFollowMode=false;
     roamingMode=false;
+    handFollowMode=false;
+    stopHandTracking();
     hasLastFloorMatrix=false;
     pet.visible=false;
     reticle.visible=false;
@@ -297,7 +311,7 @@ function init3D(){
       $('#game').classList.remove('immersive-ar');
       document.body.classList.remove('immersive-ar-active');
       floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);
-      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;cameraFollowMode=false;roamingMode=false;hasLastFloorMatrix=false;
+      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;cameraFollowMode=false;roamingMode=false;handFollowMode=false;stopHandTracking();hasLastFloorMatrix=false;
       if(placeButton)placeButton.classList.add('hidden');
       if(repositionButton)repositionButton.classList.add('hidden');
       if(followAimButton)followAimButton.classList.add('hidden');
@@ -355,6 +369,8 @@ function placePet(){
   placed = true;
   cameraFollowMode = false;
   roamingMode = false;
+  handFollowMode = false;
+  stopHandTracking();
   captureAnchoredPose();
   repositioning = false;
   reticle.visible = false;
@@ -366,32 +382,42 @@ function placePet(){
   $('#statusText').textContent = `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
 }
 
-function toggleCameraFollowMode(){
+async function toggleCameraFollowMode(){
   if(!renderer?.xr.isPresenting || !pet || !placed)return;
-  // Cycle through anchored, aim-follow, and free-roaming behaviors.
-  if(!cameraFollowMode && !roamingMode){
-    cameraFollowMode=true;
-    roamingMode=false;
-    hasLastFloorMatrix=false;
+  // Four mutually exclusive modes: anchored, aim-follow, free-roaming, and hand-follow.
+  if(!cameraFollowMode && !roamingMode && !handFollowMode){
+    cameraFollowMode=true; roamingMode=false; handFollowMode=false;
+    stopHandTracking(); hasLastFloorMatrix=false;
     if(activeXRAnchor && activeXRAnchor.delete){try{activeXRAnchor.delete();}catch{}}
-    activeXRAnchor=null;
-    pet.visible=true;
+    activeXRAnchor=null; pet.visible=true;
     toast('🎯 Modo Seguir mira ativado — aponte onde quiser');
   }else if(cameraFollowMode){
-    cameraFollowMode=false;
-    roamingMode=true;
+    cameraFollowMode=false; roamingMode=true; handFollowMode=false; stopHandTracking();
     if(activeXRAnchor && activeXRAnchor.delete){try{activeXRAnchor.delete();}catch{}}
     activeXRAnchor=null;
-    roamOrigin.copy(pet.position);
-    roamTarget.copy(pet.position);
-    roamNextTargetAt=0;
-    roamLastTime=clock.getElapsedTime();
+    roamOrigin.copy(pet.position); roamTarget.copy(pet.position);
+    roamNextTargetAt=0; roamLastTime=clock.getElapsedTime();
+    pet.visible=true; captureAnchoredPose();
+    toast('🦜 Modo Livre ativado — Pisco vai explorar, andar e voar!');
+  }else if(roamingMode){
+    cameraFollowMode=false; roamingMode=false; handFollowMode=true;
+    if(activeXRAnchor && activeXRAnchor.delete){try{activeXRAnchor.delete();}catch{}}
+    activeXRAnchor=null;
     pet.visible=true;
     captureAnchoredPose();
-    toast('🦜 Modo Livre ativado — Pisco vai explorar, andar e voar!');
+    startHandTracking().then(ok=>{
+      if(!ok && handFollowMode){
+        handFollowMode=false;
+        cameraFollowMode=false;
+        roamingMode=false;
+        captureAnchoredPose();
+        updateFollowButton();
+      }
+    });
+    toast('✋ Modo Mão: preparando reconhecimento…');
   }else{
-    roamingMode=false;
-    cameraFollowMode=false;
+    stopHandTracking();
+    handFollowMode=false; roamingMode=false; cameraFollowMode=false;
     const xrCamera=renderer.xr.getCamera(camera);
     const viewCamera=xrCamera.cameras?.[0] || xrCamera;
     viewCamera.updateMatrixWorld(true);
@@ -399,22 +425,110 @@ function toggleCameraFollowMode(){
     viewCamera.getWorldDirection(direction).normalize();
     if(hasLastFloorMatrix && direction.y < -0.48){
       const floorPoint=new THREE.Vector3().setFromMatrixPosition(lastFloorMatrix);
-      pet.position.copy(floorPoint);
-      pet.position.y+=0.012;
-      pet.rotation.set(0,0,0);
-      pet.visible=true;
-      pet.updateMatrixWorld(true);
-      captureAnchoredPose();
+      pet.position.copy(floorPoint); pet.position.y+=0.012; pet.rotation.set(0,0,0);
+      pet.visible=true; pet.updateMatrixWorld(true); captureAnchoredPose();
       toast('🐾 Pisco pousou na superfície detectada!');
     }else{
       captureAnchoredPose();
       toast('⚓ Modo Ancorado ativado — Pisco ficará neste local');
     }
   }
-  if(followAimButton){
-    followAimButton.textContent=roamingMode?'🦜 Modo: Livre':cameraFollowMode?'🎯 Modo: Seguir mira':'⚓ Modo: Ancorado';
-    followAimButton.setAttribute('aria-pressed',String(cameraFollowMode || roamingMode));
-  }
+  updateFollowButton();
+}
+function updateFollowButton(){
+  if(!followAimButton)return;
+  followAimButton.textContent=handFollowMode?'✋ Modo: Seguir mão':roamingMode?'🦜 Modo: Livre':cameraFollowMode?'🎯 Modo: Seguir mira':'⚓ Modo: Ancorado';
+  followAimButton.setAttribute('aria-pressed',String(cameraFollowMode || roamingMode || handFollowMode));
+}
+async function startHandTracking(){
+  if(handModeStarting)return false;
+  handModeStarting=true;
+  try{
+    if(!navigator.mediaDevices?.getUserMedia)throw new Error('Este navegador não permite acessar a câmera para reconhecer a mão.');
+    // MediaPipe runs locally in the browser. This extra camera stream is experimental:
+    // some mobile browsers cannot share the camera while immersive WebXR is active.
+    const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
+    const fileset=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
+    handLandmarker=await vision.HandLandmarker.createFromOptions(fileset,{
+      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},
+      runningMode:'VIDEO',numHands:1,
+      minHandDetectionConfidence:.55,minHandPresenceConfidence:.5,minTrackingConfidence:.5
+    });
+    handVideo=document.createElement('video');
+    handVideo.setAttribute('playsinline',''); handVideo.muted=true; handVideo.autoplay=true;
+    handVideo.style.cssText='position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;left:-10px;top:-10px';
+    document.body.appendChild(handVideo);
+    handStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'environment',width:{ideal:640},height:{ideal:480}}});
+    handVideo.srcObject=handStream;
+    await handVideo.play();
+    handCanvas=document.createElement('canvas'); handCanvas.width=640; handCanvas.height=480;
+    handCanvasContext=handCanvas.getContext('2d',{willReadFrequently:false});
+    lastHandSeenAt=performance.now(); handTargetValid=false; handTrackingBusy=false;
+    toast('✋ Mostre a palma para a câmera — Pisco vai tentar pousar nela');
+    return true;
+  }catch(err){
+    console.warn('Reconhecimento de mão indisponível:',err);
+    stopHandTracking();
+    toast('⚠️ Não consegui acessar a câmera para reconhecer a mão. Este navegador pode não permitir duas câmeras ao mesmo tempo no AR.');
+    return false;
+  }finally{handModeStarting=false;}
+}
+function stopHandTracking(){
+  if(handStream){for(const track of handStream.getTracks())track.stop();}
+  handStream=null;
+  if(handVideo){handVideo.pause();handVideo.srcObject=null;handVideo.remove();}
+  handVideo=null;
+  if(handLandmarker){try{handLandmarker.close();}catch{}}
+  handLandmarker=null; handCanvas=null; handCanvasContext=null;
+  handTrackingBusy=false; handTargetValid=false;
+}
+function updateHandTracking(s){
+  if(!handFollowMode || !handLandmarker || !handVideo || handVideo.readyState<2 || handTrackingBusy)return;
+  handTrackingBusy=true;
+  try{
+    const now=performance.now();
+    const result=handLandmarker.detectForVideo(handVideo,now);
+    const landmarks=result?.landmarks?.[0];
+    if(landmarks && landmarks.length>=21){
+      // Require a reasonably open palm; the wrist and middle-finger base estimate its center.
+      const wrist=landmarks[0], indexBase=landmarks[5], middleBase=landmarks[9], pinkyBase=landmarks[17];
+      const center={x:(wrist.x+indexBase.x+middleBase.x+pinkyBase.x)/4,y:(wrist.y+indexBase.y+middleBase.y+pinkyBase.y)/4};
+      const openness=(Math.hypot(landmarks[8].x-landmarks[5].x,landmarks[8].y-landmarks[5].y)+Math.hypot(landmarks[12].x-landmarks[9].x,landmarks[12].y-landmarks[9].y)+Math.hypot(landmarks[16].x-landmarks[13].x,landmarks[16].y-landmarks[13].y)+Math.hypot(landmarks[20].x-landmarks[17].x,landmarks[20].y-landmarks[17].y))/4;
+      if(openness>.07){
+        const xrCamera=renderer.xr.getCamera(camera);
+        const viewCamera=xrCamera.cameras?.[0] || xrCamera;
+        viewCamera.updateMatrixWorld(true);
+        // Screen position is projected into a point in front of the XR camera.
+        // Without a world-space hand pose/depth API, depth is approximated at 45 cm.
+        const ndcX=(.5-center.x)*2, ndcY=(.5-center.y)*2;
+        const point=new THREE.Vector3(ndcX,ndcY,.15).unproject(viewCamera);
+        const camPos=new THREE.Vector3(); viewCamera.getWorldPosition(camPos);
+        const ray=point.sub(camPos).normalize();
+        handTarget.copy(camPos).addScaledVector(ray,.45);
+        handTarget.y-=.035; // feet sit just below the estimated palm center
+        const normal=new THREE.Vector3(indexBase.x-pinkyBase.x,0,indexBase.y-pinkyBase.y);
+        const yaw=Math.atan2(normal.x,normal.z);
+        handTargetQuaternion.setFromEuler(new THREE.Euler(0,yaw,0));
+        handTargetValid=true; lastHandSeenAt=now;
+      }
+    }
+    if(handTargetValid && now-lastHandSeenAt<900){
+      const dt=Math.min(.05,Math.max(.001,clock.getDelta()));
+      const distance=pet.position.distanceTo(handTarget);
+      if(distance>.045){
+        pet.position.lerp(handTarget,Math.min(1,dt*2.6));
+        pet.rotation.slerp(handTargetQuaternion,Math.min(1,dt*3));
+      }else{
+        pet.position.lerp(handTarget,.18);
+        pet.rotation.slerp(handTargetQuaternion,.18);
+      }
+      pet.visible=true; pet.updateMatrixWorld(true);
+    }else if(now-lastHandSeenAt>=900){
+      handTargetValid=false;
+      toast('🦜 Não estou vendo a mão — mostre a palma novamente');
+    }
+  }catch(err){console.warn('Erro ao acompanhar a mão:',err);}
+  finally{handTrackingBusy=false;}
 }
 
 function updateRoaming(s){
@@ -467,6 +581,8 @@ function repositionPet(){
   // leave the camera view when the phone was pointed down at the floor.
   cameraFollowMode=false;
   roamingMode=false;
+  handFollowMode=false;
+  stopHandTracking();
   pet.position.copy(cameraPosition).addScaledVector(cameraDirection,0.72);
   pet.position.y=Math.max(0.06,pet.position.y-0.04);
   pet.scale.setScalar(AR_PET_SCALE);
@@ -618,6 +734,7 @@ function render(time,frame){
     if(!cameraFollowMode && !placed)pet.rotation.y=Math.sin(s*.45)*.08;
   }
   if(pet && placed && roamingMode) updateRoaming(s);
+  if(pet && placed && handFollowMode) updateHandTracking(s);
   if(pet && placed && !cameraFollowMode && !roamingMode){
     const ref=renderer.xr.isPresenting ? renderer.xr.getReferenceSpace() : null;
     const anchored=renderer.xr.isPresenting && frame ? updateSurfaceAnchor(frame,ref) : false;
@@ -637,7 +754,7 @@ async function startAR(){
       // can start without surface detection, and render() already has a safe
       // camera-forward placement fallback for those devices.
       arButton=ARButton.createButton(renderer,{
-        optionalFeatures:['hit-test','dom-overlay','local-floor','anchors'],
+        optionalFeatures:['hit-test','dom-overlay','local-floor','anchors','camera-access'],
         domOverlay:{root:document.body}
       });
       arButton.id='xrButton';
