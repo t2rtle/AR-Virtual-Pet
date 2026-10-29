@@ -351,25 +351,51 @@ function beginReposition(){
 function placePet(){
   if(!renderer?.xr.isPresenting || !reticle?.visible || placed || !pet)return;
   const wasRepositioning = repositioning;
-
-  // Hit-test returns the surface origin (normally the floor), while this model's
-  // origin is at its center. Raise it by half its measured model height so it
-  // stands above the detected surface instead of intersecting the floor.
   const surface = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
-  createSurfaceAnchor();
+
+  // Some mobile WebXR implementations report a hit-test transform in a stale or
+  // unexpected reference space. If that point is behind/outside the view, place
+  // the pet safely in front of the active XR camera instead of claiming success
+  // while leaving it somewhere the player cannot see.
+  const xrCamera=renderer.xr.getCamera(camera);
+  const viewCamera=xrCamera.cameras?.[0] || xrCamera;
+  viewCamera.updateMatrixWorld(true);
+  const cameraPosition=new THREE.Vector3();
+  const cameraDirection=new THREE.Vector3();
+  viewCamera.getWorldPosition(cameraPosition);
+  viewCamera.getWorldDirection(cameraDirection).normalize();
+  const toSurface=surface.clone().sub(cameraPosition);
+  const distance=toSurface.length();
+  const inFront=toSurface.dot(cameraDirection)>0.05;
+  const needsVisibleFallback=!Number.isFinite(distance) || distance<0.2 || distance>2.5 || !inFront;
+  if(needsVisibleFallback){
+    surface.copy(cameraPosition).addScaledVector(cameraDirection,0.72);
+    surface.y=Math.max(0.06,surface.y-0.035);
+    latestHitResult=null;
+    toast('🧭 Ajustei a posição para trazer Pisco para a sua visão.');
+  }else{
+    // Only create a world anchor when the detected surface passed validation.
+    createSurfaceAnchor();
+  }
+
   pet.scale.setScalar(AR_PET_SCALE);
-  // The parrot model is built from the floor upward, so place its feet directly on the detected surface.
   pet.position.copy(surface);
-  pet.position.y += 0.012;
-  pet.quaternion.identity();
+  if(needsVisibleFallback){
+    pet.rotation.set(0,0,0);
+    pet.rotation.y=Math.atan2(cameraPosition.x-pet.position.x,cameraPosition.z-pet.position.z);
+  }else{
+    pet.quaternion.identity();
+  }
   pet.renderOrder = 10;
 
-  // Make the placement immediately visible and ensure every mesh is renderable.
+  // Reassert the whole generated model's visibility, not just the parent group.
   pet.traverse(node => {
+    node.visible = true;
     if(node.isMesh){
-      node.visible = true;
       node.frustumCulled = false;
+      node.layers.enable(0);
       if(node.material){
+        node.material.visible = true;
         node.material.depthWrite = true;
         node.material.needsUpdate = true;
       }
@@ -377,6 +403,7 @@ function placePet(){
   });
   pet.visible = true;
   pet.updateMatrixWorld(true);
+  scene.add(pet);
   placed = true;
   cameraFollowMode = false;
   roamingMode = false;
@@ -385,10 +412,12 @@ function placePet(){
   reticle.visible = false;
   surfaceFound = false;
   if(placeButton)placeButton.classList.add('hidden');
-  if(repositionButton)repositionButton.classList.remove('hidden');
-  if(followAimButton){followAimButton.textContent=cameraFollowMode?'🎯 Modo: Seguir mira':'⚓ Modo: Ancorado';followAimButton.classList.remove('hidden');}
+  if(repositionButton){repositionButton.textContent='📍 Mostrar / reposicionar pet';repositionButton.classList.remove('hidden');}
+  if(followAimButton){followAimButton.textContent='⚓ Modo: Ancorado';followAimButton.classList.remove('hidden');}
   vibrate(35);tone();toast(wasRepositioning ? `${state.name} foi reposicionado! 🐾` : `${state.name} chegou! 🐾`);
-  $('#statusText').textContent = `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
+  $('#statusText').textContent = needsVisibleFallback
+    ? `${state.name} está à sua frente. Use “Mover Pisco” para reposicionar.`
+    : `${state.name} está no seu espaço — olhe para o ponto onde tocou`;
 }
 
 async function toggleCameraFollowMode(){
@@ -638,6 +667,12 @@ function render(time,frame){
       pet.visible=true;
       pet.updateMatrixWorld(true);
     }
+  }
+  // A placed pet must never silently revert to an invisible parent/mesh state.
+  if(pet && placed){
+    pet.visible=true;
+    pet.traverse(node=>{ if(node.isMesh){ node.visible=true; node.frustumCulled=false; } });
+    pet.updateMatrixWorld(true);
   }
   if(pet && pet.visible){
     if(!placed)pet.position.y=basePetY+Math.sin(s*2.1)*.018;
