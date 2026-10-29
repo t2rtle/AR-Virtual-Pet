@@ -22,6 +22,7 @@ let handStream = null;
 let handTrackingBusy = false;
 let lastHandSeenAt = 0;
 let handLastUpdateAt = 0;
+let lastHandInferenceAt = 0;
 let handTarget = new THREE.Vector3();
 let handTargetQuaternion = new THREE.Quaternion();
 let handTargetValid = false;
@@ -571,7 +572,8 @@ function updateHandTracking(s){
   if(!handFollowMode || !handLandmarker || !handVideo || handVideo.readyState<2 || handTrackingBusy)return;
   const now=performance.now();
   // Limit inference frequency to protect mobile CPU/GPU and avoid overlapping frames.
-  if(now-handLastUpdateAt<85)return;
+  if(now-lastHandInferenceAt<100)return;
+  lastHandInferenceAt=now;
   handTrackingBusy=true;
   try{
     const result=handLandmarker.detectForVideo(handVideo,now);
