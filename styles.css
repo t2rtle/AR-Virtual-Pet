@@ -506,3 +506,106 @@ button:focus-visible{outline:2px solid var(--jade-bright);outline-offset:3px}
   #pirateProgress .pirateMeta{font-size:8px;letter-spacing:.025em}
   #pirateProgress .pirateMeta b{font-size:9px}
 }
+
+
+/* Performance pass v59: lightweight HUD and static UI. Preserve the AR scene and controls. */
+.glass,
+.hero,
+.dialog,
+.stats,
+.actions,
+.hudModeBtn,
+.repositionPetBtn,
+.followAimBtn,
+.placePetBtn,
+.toast,
+.fallback,
+.modal {
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+}
+.gameScreen .stats,
+.gameScreen .actions,
+.gameScreen .hudModeBtn,
+.gameScreen .exit,
+.gameScreen .repositionPetBtn,
+.gameScreen .followAimBtn,
+.gameScreen .placePetBtn,
+.gameScreen .toast {
+  animation:none !important;
+  transition:none !important;
+  box-shadow:0 5px 16px rgba(0,0,0,.18) !important;
+}
+.gameScreen .stats {
+  width:min(158px,calc(100vw - 86px));
+  padding:7px 8px;
+  gap:6px 8px;
+  border-radius:13px;
+  background:rgba(5,24,28,.82);
+}
+.gameScreen .statsHeading {
+  font-size:8px;
+  letter-spacing:.55px;
+  padding-bottom:4px;
+}
+.gameScreen .statsHeading>span {font-size:12px}
+.gameScreen .stats div:not(.statsHeading)>span {font-size:8px}
+.gameScreen .stats b {font-size:10px}
+.gameScreen .statTrack {height:3px}
+.gameScreen .statTrack i {box-shadow:none}
+.gameScreen .actions {
+  width:min(360px,calc(100% - 16px));
+  left:50%;
+  right:auto;
+  transform:translateX(-50%);
+  bottom:max(8px,env(safe-area-inset-bottom));
+  padding:6px;
+  gap:4px;
+  border-radius:15px;
+  background:rgba(5,24,28,.86);
+}
+.gameScreen .actionHeading {
+  font-size:7px;
+  letter-spacing:.7px;
+  padding-bottom:3px;
+}
+.gameScreen .actions button {
+  min-height:43px;
+  padding:4px 2px;
+  border-radius:9px;
+  background:rgba(255,255,255,.035);
+}
+.gameScreen .actionIcon {
+  width:22px;
+  height:22px;
+  margin-bottom:2px;
+  border-radius:7px;
+  font-size:15px;
+  border:0;
+  background:rgba(65,199,160,.08);
+}
+.gameScreen .actions small {font-size:8px}
+.gameScreen .hudModeBtn {
+  min-height:34px;
+  padding:6px 9px;
+  font-size:10px;
+  background:rgba(5,24,28,.9);
+}
+.gameScreen .exit {width:34px;height:34px}
+.gameScreen .repositionPetBtn,
+.gameScreen .followAimBtn {
+  padding:7px 9px;
+  font-size:9px;
+  min-height:32px;
+  background:rgba(5,24,28,.92);
+}
+.gameScreen.hud-compact .stats {width:min(148px,calc(100vw - 86px))}
+.gameScreen.hud-compact .actions {width:min(340px,calc(100% - 16px))}
+.gameScreen.hud-compact .actions button {min-height:40px}
+@media(min-width:768px) {
+  .gameScreen .stats {width:176px}
+  .gameScreen .actions {width:min(400px,calc(100% - 24px))}
+}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
