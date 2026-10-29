@@ -4,7 +4,7 @@ import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.181.1/examples/js
 const $ = s => document.querySelector(s);
 let saved = null;
 try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {}
-const state = Object.assign({ name:'Mochi', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
+const state = Object.assign({ name:'Pisco', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
 const basePetY = .05;
 const AR_PET_HEIGHT_METERS = 0.10; // altura-alvo: 10 cm no mundo AR
@@ -27,7 +27,7 @@ async function createSurfaceAnchor(){
     const anchor=await latestHitResult.createAnchor();
     if(activeXRAnchor && activeXRAnchor.delete)activeXRAnchor.delete();
     activeXRAnchor=anchor;
-    toast('⚓ Mochi ancorado à superfície!');
+    toast('⚓ Pet ancorado à superfície!');
   }catch(err){console.warn('WebXR Anchor indisponível; usando posição fixa:',err);}
   finally{anchorRequestPending=false;}
 }
@@ -49,6 +49,7 @@ function captureAnchoredPose(){ if(!pet)return; pet.updateMatrix(); anchoredPosi
 function restoreAnchoredPose(){ if(!pet || !hasAnchoredPose || cameraFollowMode || !placed)return; pet.position.copy(anchoredPosition); pet.quaternion.copy(anchoredQuaternion); pet.scale.copy(anchoredScale); }
 
 function save(){ state.last=Date.now(); localStorage.setItem('arPetSave',JSON.stringify(state)); }
+window.addEventListener('petnamechange',event=>{ if(event.detail){state.name=event.detail;save();updateUI();} });
 function decay(){ const h=Math.min(24,Math.max(0,(Date.now()-state.last)/3600000)); state.hunger=Math.max(0,state.hunger-h*4); state.mood=Math.max(0,state.mood-h*2); state.energy=Math.max(0,state.energy-h*3); state.clean=Math.max(0,state.clean-h*1.5); save(); updateUI(); }
 function updateUI(){ ['hunger','mood','energy','clean'].forEach(k=>{ $('#'+k+'Value').textContent=Math.round(state[k]); const bar=$('#'+k+'Value').parentElement.querySelector('.statTrack i'); if(bar)bar.style.width=Math.max(0,Math.min(100,state[k]))+'%'; }); $('#statusText').textContent=`${state.name} está a postos, marujo!`; }
 function vibrate(ms=20){ if(state.vibration && navigator.vibrate) navigator.vibrate(ms); }
@@ -378,7 +379,7 @@ function toggleCameraFollowMode(){
       pet.visible=true;
       pet.updateMatrixWorld(true);
       captureAnchoredPose();
-      toast('🐾 Mochi encaixado na superfície detectada!');
+      toast('🐾 Pet encaixado na superfície detectada!');
     }else{
       captureAnchoredPose();
       toast('⚓ Modo Ancorado ativado — Mochi ficou neste local');
@@ -612,7 +613,7 @@ document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>action(b.dat
 $('#settingsBtn').onclick=()=>$('#settings').classList.remove('hidden');
 $('#closeSettings').onclick=()=>$('#settings').classList.add('hidden');
 $('#petName').value=state.name;
-$('#petName').oninput=e=>{state.name=e.target.value.trim()||'Mochi';save();updateUI();};
+$('#petName').oninput=e=>{state.name=e.target.value.trim()||'Pisco';save();updateUI();};
 $('#soundToggle').checked=state.sound;$('#soundToggle').onchange=e=>{state.sound=e.target.checked;save();};
 $('#vibrationToggle').checked=state.vibration;$('#vibrationToggle').onchange=e=>{state.vibration=e.target.checked;save();};
 $('#resetBtn').onclick=()=>{localStorage.removeItem('arPetSave');location.reload();};
