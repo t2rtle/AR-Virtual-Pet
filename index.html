@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#102b2b">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Conheça Pisco, o papagaio pirata 3D. Cuide do seu companheiro, treine no convés e explore os Sete Mares em realidade aumentada direto no navegador.">
+  <meta name="description" content="Conheça Pisco, o papagaio pirata 3D. Cuide do seu companheiro e leve-o para o seu mundo com realidade aumentada.">
   <meta name="application-name" content="Pisco — Papagaio Pirata AR">
   <meta name="author" content="t2rtle">
   <meta name="robots" content="index,follow,max-image-preview:large">
@@ -14,11 +14,11 @@
   <meta property="og:locale" content="pt_BR">
   <meta property="og:site_name" content="Pisco — Papagaio Pirata AR">
   <meta property="og:title" content="Pisco — Papagaio Pirata AR | Uma aventura nos Sete Mares">
-  <meta property="og:description" content="Cuide do seu papagaio pirata 3D, treine no convés e leve Pisco para o seu mundo com realidade aumentada.">
+  <meta property="og:description" content="Cuide do seu papagaio pirata 3D e leve Pisco para o seu mundo com realidade aumentada.">
   <meta property="og:url" content="https://t2rtle.github.io/AR-Virtual-Pet/">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Pisco — Papagaio Pirata AR">
-  <meta name="twitter:description" content="Um papagaio pirata 3D para cuidar, treinar e explorar em realidade aumentada.">
+  <meta name="twitter:description" content="Um papagaio pirata 3D para cuidar e explorar em realidade aumentada.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2224%22 fill=%22%23102b2b%22/%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%2341c7a0%22/%3E%3Ctext x=%2250%22 y=%2267%22 font-size=%2258%22 text-anchor=%22middle%22%3E%F0%9F%A6%9C%3C/text%3E%3C/svg%3E">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
@@ -30,8 +30,8 @@
   <div id="app">
     <header class="topbar glass"><div class="brand"><div class="brandMark" aria-hidden="true">🦜</div><div><strong>Pisco <span class="brandTag">CAPITÃO</span></strong><span id="statusText">A aventura está prestes a começar</span></div></div><button id="settingsBtn" class="iconBtn" aria-label="Configurações" title="Configurações">⚙️</button></header>
     <main>
-      <section id="home" class="screen"><div class="hero glass"><div class="heroDecor decorPalm" aria-hidden="true">🌴</div><div class="heroDecor decorSkull" aria-hidden="true">☠️</div><div class="petOrb" aria-hidden="true"><span>🦜</span><i>✦</i></div><p class="eyebrow">⚓ DIÁRIO DE BORDO · CAPÍTULO 01</p><h1>Os Sete Mares<br><em>cabem no seu mundo.</em></h1><p class="heroCopy">Este é Pisco, o papagaio pirata! Traga seu companheiro 3D para perto de você, descubra um lugar para ele pousar e comece uma aventura em realidade aumentada.</p><div class="featureLine"><span>✦ Papagaio 3D</span><span>✦ Realidade aumentada</span><span>✦ Cuide do capitão</span></div><button id="startBtn" class="primary">📷 <span>Explorar em realidade aumentada</span><b>→</b></button><button id="previewBtn" class="secondary">✨ Treinar no convés (sem AR)</button><p class="hint">No celular/tablet, usamos WebXR quando disponível. No PC, a experiência usa a webcam diretamente para mostrar Pisco sobre a imagem da câmera.</p><div class="heroFooter"><span>🏴‍☠️ TRIPULAÇÃO</span><span>★ AVENTURA EM ANDAMENTO ★</span></div></div></section>
-      <section id="game" class="gameScreen hidden"><canvas id="scene"></canvas><div id="arFallback" class="fallback glass hidden"><strong>🧭 Modo de treino</strong><span>O convés está pronto! Seu navegador não iniciou o WebXR, mas você ainda pode cuidar do Pisco.</span></div><button id="hudModeBtn" class="hudModeBtn" type="button" aria-label="Alternar tamanho da interface" aria-pressed="false">☰ Interface: Normal</button><button id="placePetBtn" class="placePetBtn hidden" type="button">⚓ Fazer Pisco pousar aqui</button><button id="repositionPetBtn" class="repositionPetBtn hidden" type="button">🧭 Mover Pisco</button><button id="followAimBtn" class="followAimBtn hidden" type="button">⚓ Modo: Ancorado</button><div class="hud"><div class="stats glass"><div class="statsHeading"><span>📜</span><small>DIÁRIO DE BORDO</small></div><div><span>🍗 Fome</span><b id="hungerValue">82</b><i class="statTrack"><i style="width:82%"></i></i></div><div><span>😊 Humor</span><b id="moodValue">86</b><i class="statTrack moodTrack"><i style="width:86%"></i></i></div><div><span>⚡ Energia</span><b id="energyValue">74</b><i class="statTrack energyTrack"><i style="width:74%"></i></i></div><div><span>🧼 Higiene</span><b id="cleanValue">90</b><i class="statTrack cleanTrack"><i style="width:90%"></i></i></div></div><div class="actions glass"><div class="actionHeading"><span>⚓</span> ROTINA DO CAPITÃO <span>⚓</span></div><button data-action="feed"><span class="actionIcon">🍍</span><small>Alimentar</small></button><button data-action="play"><span class="actionIcon">🗺️</span><small>Treinar voo</small></button><button data-action="pet"><span class="actionIcon">❤️</span><small>Carinho</small></button><button data-action="clean"><span class="actionIcon">🌊</span><small>Banho de mar</small></button></div><button id="exitBtn" class="exit glass" aria-label="Voltar ao menu" title="Voltar ao menu">✕</button></div><div id="toast" class="toast glass"></div></section>
+      <section id="home" class="screen"><div class="hero glass"><div class="heroDecor decorPalm" aria-hidden="true">🌴</div><div class="heroDecor decorSkull" aria-hidden="true">☠️</div><div class="petOrb" aria-hidden="true"><span>🦜</span><i>✦</i></div><p class="eyebrow">⚓ DIÁRIO DE BORDO · CAPÍTULO 01</p><h1>Os Sete Mares<br><em>cabem no seu mundo.</em></h1><p class="heroCopy">Este é Pisco, o papagaio pirata! Ative a câmera, encontre um lugar para ele pousar e comece uma aventura no seu próprio mundo em realidade aumentada.</p><div class="featureLine"><span>✦ Papagaio 3D</span><span>✦ Realidade aumentada</span><span>✦ Cuide do capitão</span></div><button id="startBtn" class="primary">📷 <span>Explorar em realidade aumentada</span><b>→</b></button><p class="hint">A câmera e um navegador compatível são necessários. No celular, use um navegador com WebXR/ARCore; no computador, a experiência usa a webcam.</p><div class="heroFooter"><span>🏴‍☠️ TRIPULAÇÃO</span><span>★ AVENTURA EM ANDAMENTO ★</span></div></div></section>
+      <section id="game" class="gameScreen hidden"><canvas id="scene"></canvas><div id="arFallback" class="fallback glass hidden" role="status" aria-live="polite"><strong>🧭 Realidade aumentada indisponível</strong><span>Este navegador ou dispositivo não oferece os recursos de AR necessários. Abra o site em um navegador compatível e permita o acesso à câmera.</span></div><button id="hudModeBtn" class="hudModeBtn" type="button" aria-label="Alternar tamanho da interface" aria-pressed="false">☰ Interface: Normal</button><button id="placePetBtn" class="placePetBtn hidden" type="button">⚓ Fazer Pisco pousar aqui</button><button id="repositionPetBtn" class="repositionPetBtn hidden" type="button">🧭 Mover Pisco</button><button id="followAimBtn" class="followAimBtn hidden" type="button">⚓ Modo: Ancorado</button><div class="hud"><div class="stats glass"><div class="statsHeading"><span>📜</span><small>DIÁRIO DE BORDO</small></div><div><span>🍗 Fome</span><b id="hungerValue">82</b><i class="statTrack"><i style="width:82%"></i></i></div><div><span>😊 Humor</span><b id="moodValue">86</b><i class="statTrack moodTrack"><i style="width:86%"></i></i></div><div><span>⚡ Energia</span><b id="energyValue">74</b><i class="statTrack energyTrack"><i style="width:74%"></i></i></div><div><span>🧼 Higiene</span><b id="cleanValue">90</b><i class="statTrack cleanTrack"><i style="width:90%"></i></i></div></div><div class="actions glass"><div class="actionHeading"><span>⚓</span> ROTINA DO CAPITÃO <span>⚓</span></div><button data-action="feed"><span class="actionIcon">🍍</span><small>Alimentar</small></button><button data-action="play"><span class="actionIcon">🗺️</span><small>Treinar voo</small></button><button data-action="pet"><span class="actionIcon">❤️</span><small>Carinho</small></button><button data-action="clean"><span class="actionIcon">🌊</span><small>Banho de mar</small></button></div><button id="exitBtn" class="exit glass" aria-label="Voltar ao menu" title="Voltar ao menu">✕</button></div><div id="toast" class="toast glass"></div></section>
     </main>
     <div id="settings" class="modal hidden"><div class="dialog glass"><button id="closeSettings" class="close" aria-label="Fechar">✕</button><p class="eyebrow">⚙️ AJUSTES DO NAVIO</p><h2>Configurações</h2><label>Nome do papagaio<input id="petName" maxlength="18" placeholder="Pisco"></label><label class="toggleRow"><span>🔔 Sons do convés</span><input id="soundToggle" type="checkbox" checked></label><label class="toggleRow"><span>📳 Vibração</span><input id="vibrationToggle" type="checkbox" checked></label><button id="resetBtn" class="danger">↻ Recomeçar aventura</button></div></div>
   </div>
@@ -40,9 +40,8 @@
     // Recovery path for browsers where the main ES module failed before binding buttons.
     document.addEventListener('click', async function(event) {
       const start = event.target.closest('#startBtn');
-      const preview = event.target.closest('#previewBtn');
-      if (!start && !preview) return;
-      const actionName = start ? '__piscoStartAR' : '__piscoPreview';
+      if (!start) return;
+      const actionName = '__piscoStartAR';
       if (typeof window[actionName] === 'function') return;
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -54,8 +53,8 @@
         await action();
       } catch (error) {
         console.error('Não foi possível iniciar a aventura:', error);
-        if (status) status.textContent = 'Falha ao iniciar. Confira a conexão e recarregue a página.';
-        window.alert('O Pisco não conseguiu iniciar. Recarregue a página com a internet ligada. Se continuar, abra o site no Chrome ou Samsung Browser atualizado.');
+        if (status) status.textContent = 'Não foi possível iniciar a realidade aumentada. Confira as permissões da câmera e a compatibilidade do navegador.';
+        window.alert('O Pisco não conseguiu iniciar a realidade aumentada. Verifique a permissão da câmera, a conexão e se o navegador/dispositivo oferece suporte a AR. No Android, tente o Chrome ou Samsung Browser atualizado com os serviços ARCore disponíveis.');
       }
     }, true);
   </script>
