@@ -4,6 +4,19 @@ import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.181.1/examples/js
 const $ = s => document.querySelector(s);
 let saved = null;
 try { saved = JSON.parse(localStorage.getItem('arPetSave') || 'null'); } catch {}
+const QUALITY_KEY = 'piscoVideoQuality';
+const QUALITY_SCALE = { '140':0.18, '280':0.28, '420':0.42, '720':0.68, '1080':1, 'original':1.25 };
+function getQualityScale(){ const key=localStorage.getItem(QUALITY_KEY)||'420'; return QUALITY_SCALE[key]||QUALITY_SCALE['420']; }
+function applyRenderQuality(){
+  if(!renderer)return;
+  const isMobile=/Android|iPhone|iPad/i.test(navigator.userAgent)||matchMedia('(max-width: 767px)').matches;
+  const cap=isMobile?1:1.25;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,cap,getQualityScale()));
+  renderer.setSize(innerWidth,innerHeight,false);
+  if(camera){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+}
+window.__piscoGetQuality = () => localStorage.getItem(QUALITY_KEY)||'420';
+window.__piscoQualityScale = getQualityScale;
 const state = Object.assign({ name:'Pisco', hunger:82, mood:86, energy:74, clean:90, last:Date.now(), sound:true, vibration:true }, saved || {});
 if (!state.name || state.name === 'Mochi') state.name = 'Pisco';
 let scene, camera, renderer, pet, floor, clock, reticle, hitTestSource = null, hitTestSourceRequested = false, placed = false, toastTimer, arButton;
@@ -256,8 +269,7 @@ function init3D(){
   camera.position.set(0,.65,1.8);
   const isMobileDevice=matchMedia('(max-width: 767px)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
   renderer=new THREE.WebGLRenderer({canvas:$('#scene'),antialias:!isMobileDevice,alpha:true,premultipliedAlpha:false,powerPreference:isMobileDevice?'low-power':'high-performance'});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,isMobileDevice?1:1.25));
-  renderer.setSize(innerWidth,innerHeight);
+  applyRenderQuality();
   renderer.setClearColor(0x000000,0);
   renderer.setClearAlpha(0);
   renderer.domElement.style.backgroundColor='transparent';
@@ -790,7 +802,18 @@ $('#petName').addEventListener('input', e => {
 });
 $('#soundToggle').checked=state.sound;$('#soundToggle').onchange=e=>{state.sound=e.target.checked;save();};
 $('#vibrationToggle').checked=state.vibration;$('#vibrationToggle').onchange=e=>{state.vibration=e.target.checked;save();};
+const qualitySelect=$('#videoQuality');
+if(qualitySelect){
+  qualitySelect.value=localStorage.getItem(QUALITY_KEY)||'420';
+  qualitySelect.addEventListener('change',e=>{
+    const value=QUALITY_SCALE[e.target.value] ? e.target.value : '420';
+    localStorage.setItem(QUALITY_KEY,value);
+    applyRenderQuality();
+    window.dispatchEvent(new CustomEvent('piscoqualitychange',{detail:{quality:value,scale:getQualityScale()}}));
+    toast(value==='original'?'🎞️ Qualidade máxima disponível selecionada':`🎞️ Qualidade visual ajustada para ${value}p`);
+  });
+}
 $('#resetBtn').onclick=()=>{localStorage.removeItem('arPetSave');location.reload();};
-addEventListener('resize',()=>{if(camera&&renderer){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}});
+addEventListener('resize',()=>{if(camera&&renderer)applyRenderQuality();});
 decay();updateUI();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(console.warn);
