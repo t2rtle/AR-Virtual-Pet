@@ -41,16 +41,9 @@ function installIdle(group) {
   const bodyMesh = group.getObjectByName('Parrot body');
   const hatBrim = group.getObjectByName('Pirate hat brim');
   const hatCrown = group.getObjectByName('Pirate hat crown');
-  const headPivot = new THREE.Vector3(0, .76, .015);
-  const headPosition = new THREE.Vector3();
-  const headDelta = new THREE.Quaternion();
-  const headEuler = new THREE.Euler();
-  const headOffset = new THREE.Vector3();
-  const headPartQuaternion = new THREE.Quaternion();
 
   let reactionUntil = 0;
   let reactionType = '';
-  let lastTap = 0;
   let nextSpecial = performance.now() * .001 + 4 + Math.random() * 4;
   let specialUntil = 0;
   let specialType = '';
@@ -67,7 +60,6 @@ function installIdle(group) {
     nextSpecial = t + 5.5 + Math.random() * 8.5;
   }
 
-  // Existing gameplay buttons become character interactions instead of merely changing stats.
   document.addEventListener('click', event => {
     const action = event.target?.closest?.('[data-action]')?.dataset?.action;
     if (!action) return;
@@ -77,22 +69,31 @@ function installIdle(group) {
     if (action === 'clean') triggerReaction('clean', 2.2);
   }, { passive: true });
 
-  // Rename the old roaming label without touching AR placement logic. The underlying
-  // three-state cycle remains: anchored -> follow aim -> roaming, now presented as Voar.
-  const renameFlightUI = () => {
+  // Rename the legacy roaming label once. The previous implementation used a
+  // MutationObserver that rewrote the same text on every mutation, causing an
+  // infinite mutation loop and freezing the page on startup.
+  function renameFlightUI() {
     const button = document.querySelector('#followAimBtn');
     if (button) {
-      button.textContent = button.textContent.replace(/Modo:\s*Livre/g, 'Modo: Voar');
-      button.setAttribute('aria-label', button.textContent.includes('Voar') ? 'Alternar modo de voo do Pisco' : 'Alternar modo AR');
+      const nextText = button.textContent.replace(/Modo:\s*Livre/g, 'Modo: Voar');
+      if (nextText !== button.textContent) button.textContent = nextText;
+      if (button.textContent.includes('Voar')) {
+        button.setAttribute('aria-label', 'Alternar modo de voo do Pisco');
+      }
     }
     const toast = document.querySelector('#toast');
     if (toast && toast.textContent.includes('Modo Livre')) {
-      toast.textContent = toast.textContent
-        .replace('Modo Livre ativado — Pisco vai explorar, andar e voar!', 'Modo Voar ativado — Pisco vai explorar os céus! 🦜💨');
+      const nextText = toast.textContent.replace(
+        'Modo Livre ativado — Pisco vai explorar, andar e voar!',
+        'Modo Voar ativado — Pisco vai explorar os céus! 🦜💨'
+      );
+      if (nextText !== toast.textContent) toast.textContent = nextText;
     }
-  };
-  const uiObserver = new MutationObserver(renameFlightUI);
-  uiObserver.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: false });
+  }
+
+  // No observer is needed: the animation module loads before app.js and the
+  // button/toast already exist in index.html. A single pass avoids any startup
+  // feedback loop while still applying the visual rename.
   renameFlightUI();
 
   body.onBeforeRender = () => {
@@ -105,7 +106,6 @@ function installIdle(group) {
     const flight = flying || (reactionType === 'play' && reaction);
     const flightStrength = flying ? 1 : (reactionType === 'play' && reaction ? .82 : 0);
 
-    // Calm breathing becomes a buoyant body rhythm in flight.
     const bodyBob = Math.sin(t * Math.PI * 2.2);
     const bodySway = Math.sin(t * Math.PI * 1.25);
     const flightBob = flight ? Math.sin(t * 8.5) * .028 * flightStrength : 0;
@@ -145,22 +145,17 @@ function installIdle(group) {
       head.rotation.x = b.rotation.x + headDeltaX;
     }
 
-    // Lightweight facial rig: eyes, beak, crest and hat follow the head pivot.
+    // Facial parts follow the head without creating extra scene objects.
     if (head) {
-      const hb = base.get(head);
-      headPosition.set(headPivot.x, hb.position.y + bodyBob * .008 + flightBob * .45, headPivot.z);
-      headEuler.set(headDeltaX, 0, headDeltaZ, 'XYZ');
-      headDelta.setFromEuler(headEuler);
       headParts.forEach(part => {
         const b = base.get(part);
-        headOffset.set(b.position.x - headPivot.x, b.position.y - headPivot.y, b.position.z - headPivot.z).applyQuaternion(headDelta);
-        part.position.copy(headPosition).add(headOffset);
-        headPartQuaternion.setFromEuler(b.rotation).premultiply(headDelta);
-        part.quaternion.copy(headPartQuaternion);
+        if (!b) return;
+        part.rotation.x = b.rotation.x + headDeltaX;
+        part.rotation.z = b.rotation.z + headDeltaZ;
+        part.position.y = b.position.y + bodyBob * .008 + flightBob * .45;
       });
     }
 
-    // Tiny talking/squawking beak motion during playful reactions.
     lowerBeaks.forEach(beak => {
       const b = base.get(beak);
       const talking = reaction && (reactionType === 'play' || reactionType === 'feed')
@@ -176,7 +171,6 @@ function installIdle(group) {
       chest.scale.set(b.scale.x * pulse, b.scale.y * (1 + (pulse - 1) * 2), b.scale.z * pulse);
     }
 
-    // Blinks + occasional quick double blink make the eyes feel alive.
     const blinkPhase = t % 5.1;
     const blink = blinkPhase < .18 ? Math.sin(Math.PI * blinkPhase / .18) : (blinkPhase > .34 && blinkPhase < .46 ? Math.sin(Math.PI * (blinkPhase - .34) / .12) * .62 : 0);
     eyes.forEach(eye => {
@@ -188,7 +182,6 @@ function installIdle(group) {
       sparkle.scale.y = b.scale.y * (1 - blink * .9);
     });
 
-    // Wing choreography: calm idle, energetic play, and a true continuous flight flap.
     const cycleSpeed = flight ? 10.5 : (reaction ? 8.0 : 4.6);
     const cycle = t * cycleSpeed;
     const wave = Math.sin(cycle);
@@ -225,7 +218,6 @@ function installIdle(group) {
       highlight.position.y = b.position.y + bodyBob * .010 + Math.max(0, w) * (flight ? .018 : .012);
     });
 
-    // Tail acts as a rudder: it counters turns and bounces with each wingbeat.
     tails.forEach((tail, i) => {
       const b = base.get(tail);
       const phase = i * .35;
@@ -234,7 +226,6 @@ function installIdle(group) {
       tail.position.y = b.position.y + bodyBob * .009 + flightBob - down * (flight ? .010 : .006);
     });
 
-    // Feet tuck in during flight and bounce during playful land-based actions.
     feet.forEach((foot, i) => {
       const b = base.get(foot);
       const tuck = flight ? .035 + Math.max(0, Math.sin(cycle)) * .012 : 0;
@@ -243,21 +234,18 @@ function installIdle(group) {
       foot.rotation.z = b.rotation.z + (i === 0 ? -1 : 1) * (reaction ? Math.sin(t * 8) * .035 : 0);
     });
 
-    // Feather shimmer: tiny scale pulses on the breast during happy moments.
     breastFeathers.forEach((feather, i) => {
       const b = base.get(feather);
       const pulse = reactionType === 'pet' && reaction ? 1 + Math.max(0, Math.sin(t * 9 + i)) * .035 : 1;
       feather.scale.set(b.scale.x * pulse, b.scale.y * pulse, b.scale.z * pulse);
     });
 
-    // Pirate hat gets a playful little bounce in flight and during reactions.
     [hatBrim, hatCrown].forEach((hat, i) => {
       if (!hat) return;
       const b = base.get(hat);
       hat.position.y = b.position.y + (flight ? Math.max(0, Math.sin(cycle - .5)) * .018 : 0) + (reaction ? Math.sin(t * 7 + i) * .008 : 0);
     });
 
-    // Extra personality: a very subtle wing stretch after landing.
     if (!flight && specialType === 'stretch' && special) {
       wings.forEach((wing, i) => {
         const b = base.get(wing);
@@ -265,9 +253,6 @@ function installIdle(group) {
         wing.rotation.z = b.rotation.z + (i ? -stretch : stretch);
       });
     }
-
-    // Double-tap-style timing hook for future pointer interactions.
-    if (t - lastTap > 12 && special && specialType === 'happy') lastTap = t;
   };
 }
 
