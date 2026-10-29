@@ -609,3 +609,52 @@ button:focus-visible{outline:2px solid var(--jade-bright);outline-offset:3px}
 @media(prefers-reduced-motion:reduce) {
   *,*::before,*::after {animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
+
+
+/* HUD modes v61: predictable, viewport-safe layouts for all three interface modes. */
+.gameScreen .hudModeBtn{
+  position:absolute;z-index:45;top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));
+  width:auto;max-width:calc(100vw - 92px);min-height:36px;padding:7px 10px;border:1px solid rgba(243,198,107,.3);
+  border-radius:12px;background:rgba(5,24,28,.94);color:var(--sand);font-size:10px;font-weight:850;line-height:1.25;
+  white-space:normal;overflow-wrap:anywhere;pointer-events:auto;touch-action:manipulation;
+}
+.gameScreen .stats{top:calc(max(10px,env(safe-area-inset-top)) + 48px);left:max(8px,env(safe-area-inset-left));width:min(168px,calc(100vw - 88px));max-height:calc(100dvh - 180px);overflow:auto;}
+.gameScreen .exit{top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));}
+.gameScreen .actions{bottom:max(8px,env(safe-area-inset-bottom));max-height:calc(100dvh - 100px);overflow-y:auto;}
+.gameScreen .repositionPetBtn{top:calc(max(10px,env(safe-area-inset-top)) + 48px);right:max(10px,env(safe-area-inset-right));}
+.gameScreen .followAimBtn{top:calc(max(10px,env(safe-area-inset-top)) + 48px + 46px + 8px);right:max(10px,env(safe-area-inset-right));}
+.gameScreen.hud-compact .stats{
+  width:min(126px,calc(100vw - 92px));padding:5px 6px;gap:5px 6px;max-height:calc(100dvh - 150px);
+}
+.gameScreen.hud-compact .statsHeading{font-size:7px;letter-spacing:.2px;gap:4px;padding-bottom:3px;}
+.gameScreen.hud-compact .stats div:not(.statsHeading)>span{font-size:7px;overflow-wrap:anywhere;}
+.gameScreen.hud-compact .stats b{font-size:9px;}
+.gameScreen.hud-compact .statTrack{height:2px;}
+.gameScreen.hud-compact .actions{
+  width:min(310px,calc(100% - 16px));left:50%;right:auto;transform:translateX(-50%);
+  padding:5px;gap:3px;bottom:max(7px,env(safe-area-inset-bottom));max-height:calc(100dvh - 78px);
+}
+.gameScreen.hud-compact .actionHeading{font-size:6px;letter-spacing:.25px;gap:4px;}
+.gameScreen.hud-compact .actions button{min-height:36px;padding:3px 1px;}
+.gameScreen.hud-compact .actionIcon{width:19px;height:19px;font-size:13px;margin-bottom:1px;}
+.gameScreen.hud-compact .actions small{font-size:7px;line-height:1.15;overflow-wrap:anywhere;}
+.gameScreen.hud-compact .hudModeBtn{top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left));max-width:calc(100vw - 76px);}
+.gameScreen.hud-hidden .stats,.gameScreen.hud-hidden .actions{display:none!important;}
+.gameScreen.hud-hidden .hudModeBtn{max-width:calc(100vw - 76px);}
+.gameScreen.hud-hidden .exit{opacity:.92;}
+.gameScreen.immersive-ar .hudModeBtn{z-index:50;}
+@media(max-height:500px){
+  .gameScreen .stats{max-height:calc(100dvh - 130px);}
+  .gameScreen .actions{max-height:calc(100dvh - 68px);grid-template-columns:repeat(4,minmax(0,1fr));}
+  .gameScreen .actionHeading{padding-bottom:2px;}
+  .gameScreen .actions button{min-height:32px;}
+}
+@media(max-width:360px){
+  .gameScreen.hud-compact .stats{width:112px;left:6px;}
+  .gameScreen.hud-compact .actions{width:calc(100% - 12px);left:6px;}
+  .gameScreen.hud-compact .actions small{font-size:6px;}
+}
+/* Visual-quality settings */
+.qualitySetting{display:block;margin:16px 0 8px;color:#c5d6cb;font-size:13px;}
+.qualitySetting select{display:block;width:100%;margin-top:8px;padding:12px;border:1px solid rgba(243,198,107,.28);border-radius:12px;background:#102b2b;color:#fff0d0;min-height:44px;}
+.qualityNote{margin:7px 0 14px;color:#9fb8ad;font-size:11px;line-height:1.5;}
