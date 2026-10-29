@@ -127,8 +127,11 @@ async function openDesktopCamera(){
     return;
   }
   try{
+    const selectedQuality=window.__piscoGetQuality?.()||localStorage.getItem('piscoVideoQuality')||'420';
+    const cameraSizes={'140':[256,144],'280':[512,288],'420':[768,432],'720':[1280,720],'1080':[1920,1080],'original':[1920,1080]};
+    const target=cameraSizes[selectedQuality]||cameraSizes['420'];
     stream=await navigator.mediaDevices.getUserMedia({
-      video:{width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:60}},
+      video:{width:{ideal:target[0]},height:{ideal:target[1]},frameRate:{ideal:30,max:60}},
       audio:false
     });
   }catch(error){
@@ -146,7 +149,8 @@ async function openDesktopCamera(){
   camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.01,100);
   camera.position.set(0,.65,1.8);
   renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,premultipliedAlpha:false,powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
+  const qualityScale=window.__piscoQualityScale?.() ?? 0.42;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25,qualityScale));
   renderer.setSize(innerWidth,innerHeight);
   renderer.setClearColor(0,0);
   scene.add(new THREE.HemisphereLight(0xdde7ff,0x394052,2.2));
@@ -255,8 +259,19 @@ function resize(){
   if(!renderer||!camera)return;
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
+  const qualityScale=window.__piscoQualityScale?.() ?? 0.42;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.25,qualityScale));
   renderer.setSize(innerWidth,innerHeight,false);
 }
+window.addEventListener('piscoqualitychange',()=>{
+  if(!active)return;
+  const quality=window.__piscoGetQuality?.()||'420';
+  const sizes={'140':[256,144],'280':[512,288],'420':[768,432],'720':[1280,720],'1080':[1920,1080],'original':[1920,1080]};
+  const target=sizes[quality]||sizes['420'];
+  const track=stream?.getVideoTracks?.()[0];
+  if(track?.applyConstraints)track.applyConstraints({width:{ideal:target[0]},height:{ideal:target[1]}}).catch(err=>console.warn('A webcam não aceitou a nova resolução; mantendo a atual:',err));
+  resize();
+});
 
 function stopDesktopCamera(){
   if(!active)return;
