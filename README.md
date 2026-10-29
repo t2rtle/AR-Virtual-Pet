@@ -1,6 +1,6 @@
 # AR Virtual Pet
 
-Um jogo de pet virtual 3D pensado para celular, navegador e realidade aumentada.
+Um jogo de pet virtual 3D com foco em realidade aumentada (AR). É necessário usar um dispositivo e navegador compatíveis com AR e conceder acesso à câmera.
 
 🌐 **Site do jogo:** [Jogar AR Virtual Pet](https://t2rtle.github.io/AR-Virtual-Pet/)
 
@@ -8,7 +8,7 @@ Um jogo de pet virtual 3D pensado para celular, navegador e realidade aumentada.
 
 - 📷 Entrada em realidade aumentada com WebXR/ARCore quando suportada
 - 🐾 Pet 3D procedural leve, sem depender de um modelo externo
-- 🎮 Modo de teste 3D para navegadores sem WebXR
+- 📷 Experiência AR pela webcam em navegadores desktop compatíveis
 - 🍎 Alimentar, 🎾 brincar, ❤️ carinho e 🫧 limpeza
 - 📊 Fome, humor, energia e higiene
 - 💾 Progresso salvo automaticamente no navegador
@@ -19,7 +19,7 @@ Um jogo de pet virtual 3D pensado para celular, navegador e realidade aumentada.
 
 ## Publicação
 
-O projeto é estático e pode ser publicado pelo GitHub Pages. Para testar AR, o site precisa estar em HTTPS e o dispositivo/navegador precisa oferecer WebXR immersive-ar.
+O projeto é estático e pode ser publicado pelo GitHub Pages. A experiência principal exige câmera e suporte a realidade aumentada. Em dispositivos móveis, o site precisa estar em HTTPS e o navegador deve oferecer WebXR immersive-ar (e, em Android, os serviços ARCore quando exigidos). Em computadores compatíveis, o site pode usar a webcam para sobrepor o pet à imagem da câmera. Não existe mais modo de treino sem AR.
 
 ## Próximos upgrades
 
