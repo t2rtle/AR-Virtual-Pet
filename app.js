@@ -703,7 +703,7 @@ function render(time,frame){
     pet.updateMatrixWorld(true);
   }
   if(pet && pet.visible){
-    if(typeof pet.userData.updateAnimation==='function')pet.userData.updateAnimation(s);
+    if(typeof pet.userData.updateAnimation==='function')pet.userData.updateAnimation(time * 0.001);
     if(!placed)pet.position.y=basePetY+Math.sin(s*1.45)*.012;
     if(!cameraFollowMode && !placed)pet.rotation.y=Math.sin(s*.45)*.08;
   }
