@@ -158,3 +158,55 @@ button:focus-visible{outline:2px solid var(--jade-bright);outline-offset:3px}
   .repositionPetBtn { top: 190px !important; }
   .followAimBtn { top: 240px !important; }
 }
+
+
+/* Adjustable interface control: cycle through normal, compact and hidden HUD. */
+.hudModeBtn{
+  position:fixed;z-index:48;top:12px;left:12px;
+  min-height:42px;max-width:calc(100vw - 24px);
+  padding:10px 13px;border:1px solid rgba(243,198,107,.42);
+  border-radius:14px;background:rgba(7,27,30,.92);color:#f6e7c5;
+  font:850 11px/1.25 system-ui,sans-serif;letter-spacing:.15px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  cursor:pointer;touch-action:manipulation;
+}
+.hudModeBtn:active{transform:scale(.97)}
+.hudModeBtn:focus-visible{outline:2px solid var(--jade-bright);outline-offset:3px}
+/* The home header stays on the home screen; game controls get their own clear space. */
+body:has(.gameScreen:not(.hidden)) .topbar{display:none}
+.gameScreen.hud-compact .stats{
+  padding:7px 8px;gap:6px 8px;border-radius:13px;
+  background:rgba(7,26,31,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
+}
+.gameScreen.hud-compact .statsHeading{font-size:8px;padding-bottom:4px;letter-spacing:.7px}
+.gameScreen.hud-compact .statsHeading>span{font-size:12px}
+.gameScreen.hud-compact .stats div:not(.statsHeading){gap:3px}
+.gameScreen.hud-compact .stats div:not(.statsHeading)>span{font-size:8px}
+.gameScreen.hud-compact .stats b{font-size:10px}
+.gameScreen.hud-compact .statTrack{height:3px}
+.gameScreen.hud-compact .actions{
+  padding:6px;gap:5px;border-radius:15px;
+  background:rgba(7,26,31,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
+}
+.gameScreen.hud-compact .actionHeading{font-size:8px;padding-bottom:4px;letter-spacing:.7px}
+.gameScreen.hud-compact .actions button{min-height:52px;padding:5px 2px;border-radius:10px}
+.gameScreen.hud-compact .actionIcon{width:25px;height:25px;font-size:17px;margin-bottom:2px;border-radius:8px}
+.gameScreen.hud-compact .actions small{font-size:8px}
+.gameScreen.hud-compact .exit{width:34px;height:34px;font-size:14px}
+.gameScreen.hud-compact .repositionPetBtn,
+.gameScreen.hud-compact .followAimBtn{min-height:34px;padding:7px 9px;font-size:9px}
+.gameScreen.hud-compact .placePetBtn{padding:10px 13px;font-size:12px}
+.gameScreen.hud-hidden .stats,
+.gameScreen.hud-hidden .actions,
+.gameScreen.hud-hidden .exit,
+.gameScreen.hud-hidden .repositionPetBtn:not(.hidden),
+.gameScreen.hud-hidden .followAimBtn:not(.hidden),
+.gameScreen.hud-hidden .placePetBtn:not(.hidden){display:none!important}
+.gameScreen.hud-hidden .hudModeBtn{background:rgba(7,27,30,.96);border-color:rgba(119,228,189,.65)}
+@media(max-width:420px){
+  .hudModeBtn{top:10px;left:10px;min-height:38px;padding:8px 10px;font-size:10px}
+}
+@media(max-height:560px) and (orientation:landscape){
+  .hudModeBtn{top:8px;left:8px;min-height:34px;padding:6px 9px}
+}
