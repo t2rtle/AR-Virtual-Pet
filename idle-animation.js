@@ -43,10 +43,25 @@ function installIdle(group) {
   const hatCrown = group.getObjectByName('Pirate hat crown');
   const eyes = [];
   const sparkles = [];
+  const headParts = [];
+  const lowerBeaks = [];
+  const feet = [];
   group.traverse(node => {
-    if (node.isMesh && node.name === 'Eye') eyes.push(node);
-    if (node.isMesh && node.name === 'Eye sparkle') sparkles.push(node);
+    if (!node.isMesh) return;
+    if (node.name === 'Eye') eyes.push(node);
+    if (node.name === 'Eye sparkle') sparkles.push(node);
+    if (node.name === 'Lower beak') lowerBeaks.push(node);
+    if (node.name === 'Golden foot') feet.push(node);
+    // The procedural character is currently built from sibling meshes rather than a rig.
+    // Move the facial/hat details around the head pivot so they follow its expressions.
+    if (/^(Eye patch|Eye|Eye sparkle|Red forehead|Green crest feather|Beak|Sculpted hooked upper beak|Beak side plate|Lower beak|Beak nostril|Pirate hat|Skull|Crossbone)/.test(node.name)) headParts.push(node);
   });
+  const headPivot = new THREE.Vector3(0, .76, .015);
+  const headPosition = new THREE.Vector3();
+  const headDelta = new THREE.Quaternion();
+  const headEuler = new THREE.Euler();
+  const headOffset = new THREE.Vector3();
+  const headPartQuaternion = new THREE.Quaternion();
   let reactionUntil = 0;
   let reactionType = '';
   const onPetAction = event => {
@@ -81,14 +96,42 @@ function installIdle(group) {
       bodyMesh.rotation.x = b.rotation.x + Math.sin(t * Math.PI * 2.4 + 0.7) * 0.012;
     }
 
+    let headDeltaZ = 0;
+    let headDeltaX = 0;
     if (head) {
       const b = base.get(head);
       head.position.y = b.position.y + bodyBob * 0.008;
       const curiousTilt = Math.sin(t * 1.17) * 0.055;
       const excitedTilt = reaction ? Math.sin(t * 11) * 0.10 : 0;
-      head.rotation.z = b.rotation.z + bodySway * 0.035 + curiousTilt + excitedTilt;
-      head.rotation.x = b.rotation.x + Math.sin(cycle * 0.5 + 0.8) * 0.018 + (reactionType === 'pet' && reaction ? -0.06 : 0);
+      // Occasional gentle nods make Pisco feel curious rather than mechanically looping.
+      const nod = Math.pow(Math.max(0, Math.sin(t * 0.73 + 1.2)), 10) * 0.075;
+      const sleepyNod = !reaction && (t % 19.0) > 16.8 ? Math.sin((t % 19.0 - 16.8) * 1.5) * 0.12 : 0;
+      headDeltaZ = bodySway * 0.035 + curiousTilt + excitedTilt;
+      headDeltaX = Math.sin(cycle * 0.5 + 0.8) * 0.018 + (reactionType === 'pet' && reaction ? -0.06 : 0) + nod + sleepyNod;
+      head.rotation.z = b.rotation.z + headDeltaZ;
+      head.rotation.x = b.rotation.x + headDeltaX;
     }
+
+    // Keep eyes, beak, crest and pirate hat attached visually to the moving head.
+    // This is a lightweight procedural rig; the AR root and anchor transforms stay untouched.
+    if (head) {
+      const hb = base.get(head);
+      headPosition.set(headPivot.x, hb.position.y + bodyBob * 0.008, headPivot.z);
+      headEuler.set(headDeltaX, 0, headDeltaZ, 'XYZ');
+      headDelta.setFromEuler(headEuler);
+      headParts.forEach(part => {
+        const b = base.get(part);
+        headOffset.set(b.position.x - headPivot.x, b.position.y - headPivot.y, b.position.z - headPivot.z).applyQuaternion(headDelta);
+        part.position.copy(headPosition).add(headOffset);
+        headPartQuaternion.setFromEuler(b.rotation).premultiply(headDelta);
+        part.quaternion.copy(headPartQuaternion);
+      });
+    }
+    lowerBeaks.forEach(beak => {
+      const b = base.get(beak);
+      const mouthOpen = reaction && reactionType === 'play' ? Math.max(0, Math.sin(t * 13)) * 0.012 : 0;
+      beak.position.y = b.position.y - mouthOpen;
+    });
 
     if (chest) {
       const b = base.get(chest);
@@ -157,14 +200,15 @@ function installIdle(group) {
       tail.position.y = b.position.y + bodyBob * 0.009 - wingDown * 0.006;
     });
 
-    // The pirate hat subtly reacts to the flight motion without losing its silhouette.
-    [hatBrim, hatCrown].forEach(hat => {
-      if (!hat) return;
-      const b = base.get(hat);
-      hat.position.y = b.position.y + bodyBob * 0.008;
-      hat.rotation.z = b.rotation.z + bodySway * 0.025 + (reaction ? Math.sin(t * 8) * 0.025 : 0);
-      hat.rotation.x = b.rotation.x + Math.sin(cycle * 0.5) * 0.012;
+    // Tiny foot/perch bounce during play reactions; feet remain still while resting.
+    feet.forEach((foot, i) => {
+      const b = base.get(foot);
+      const hop = reactionType === 'play' && reaction ? Math.max(0, Math.sin(t * 10)) * 0.012 : 0;
+      foot.position.y = b.position.y + hop + bodyBob * 0.002;
+      foot.rotation.z = b.rotation.z + (i === 0 ? -1 : 1) * (reaction ? Math.sin(t * 8) * 0.035 : 0);
     });
+
+    // Hat pieces now follow the head pivot above, preserving the silhouette during nods.
   };
 }
 
