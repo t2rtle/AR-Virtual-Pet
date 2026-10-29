@@ -620,7 +620,7 @@ function render(time,frame){
     if(!cameraFollowMode && !placed)pet.rotation.y=Math.sin(s*.45)*.08;
   }
   if(pet && placed && roamingMode) updateRoaming(s);
-  if(pet && placed && !cameraFollowMode && !roamingMode && !){
+  if(pet && placed && !cameraFollowMode && !roamingMode){
     const ref=renderer.xr.isPresenting ? renderer.xr.getReferenceSpace() : null;
     const anchored=renderer.xr.isPresenting && frame ? updateSurfaceAnchor(frame,ref) : false;
     if(!anchored)restoreAnchoredPose();
