@@ -474,3 +474,35 @@ button:focus-visible{outline:2px solid var(--jade-bright);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
 }
+
+
+/* Stability fix: the pirate progression panel and every stat row must stay
+   inside the glass card, even with long localized values or larger text settings. */
+.stats{
+  min-width:0;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-content:start;
+  overflow:hidden;
+}
+.stats > *{min-width:0;max-width:100%}
+.stats .statsHeading,
+.stats #pirateProgress{grid-column:1 / -1;width:100%;min-width:0;max-width:100%}
+.stats div:not(.statsHeading):not(#pirateProgress){min-width:0}
+.stats div:not(.statsHeading):not(#pirateProgress) > span{
+  min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:normal;
+}
+.stats b{min-width:0;max-width:100%;font-variant-numeric:tabular-nums}
+#pirateProgress{box-sizing:border-box;overflow:hidden}
+#pirateProgress .pirateMeta{min-width:0;gap:6px;flex-wrap:wrap;line-height:1.35}
+#pirateProgress .pirateMeta > *{min-width:0;max-width:100%;overflow-wrap:anywhere}
+#pirateProgress .pirateXp{width:100%;min-width:0}
+#pirateProgress .pirateMeta span:last-child{text-align:right}
+@media(max-width:420px){
+  .stats{width:min(220px,calc(100vw - 84px));padding:8px;gap:8px 7px}
+  .stats .statsHeading{letter-spacing:.45px;overflow-wrap:anywhere}
+  .stats div:not(.statsHeading):not(#pirateProgress) > span{font-size:clamp(8px,2.3vw,10px)}
+  .stats b{font-size:clamp(10px,2.8vw,12px)}
+  #pirateProgress{margin:2px 0 5px;padding:6px}
+  #pirateProgress .pirateMeta{font-size:8px;letter-spacing:.025em}
+  #pirateProgress .pirateMeta b{font-size:9px}
+}
