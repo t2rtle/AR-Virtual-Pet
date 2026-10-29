@@ -115,17 +115,17 @@ function syncDisplayedName(){
   while(walker.nextNode()) nodes.push(walker.currentNode);
   for(const node of nodes){
     if(node.parentElement?.closest('#petName')) continue;
-    if(node.nodeValue.includes(previous) || node.nodeValue.includes('Mochi'))
-      node.nodeValue = node.nodeValue.split(previous).join(next).split('Mochi').join(next);
+    if(node.nodeValue.includes(previous) || node.nodeValue.includes('Mochi') || node.nodeValue.includes('Pisco'))
+      node.nodeValue = node.nodeValue.split(previous).join(next).split('Mochi').join(next).split('Pisco').join(next);
   }
   document.querySelectorAll('[title],[aria-label],[placeholder],meta[name="description"]').forEach(el=>{
     for(const attr of ['title','aria-label','placeholder','content']){
       if(!el.hasAttribute(attr)) continue;
       const value=el.getAttribute(attr);
-      if(value.includes(previous) || value.includes('Mochi')) el.setAttribute(attr,value.split(previous).join(next).split('Mochi').join(next));
+      if(value.includes(previous) || value.includes('Mochi') || value.includes('Pisco')) el.setAttribute(attr,value.split(previous).join(next).split('Mochi').join(next).split('Pisco').join(next));
     }
   });
-  document.title = document.title.split(previous).join(next).split('Mochi').join(next);
+  document.title = document.title.split(previous).join(next).split('Mochi').join(next).split('Pisco').join(next);
   lastRenderedName = next;
 }
 function updateUI(){
