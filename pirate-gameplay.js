@@ -49,6 +49,8 @@ function load(){
   lastRenderedName = 'Pisco';
   applyOfflineTime();
   save();
+  // The old save has now been migrated into the Pisco save key.
+  try { localStorage.removeItem(LEGACY_SAVE_KEY); } catch {}
 }
 function save(){
   game.last = Date.now();
