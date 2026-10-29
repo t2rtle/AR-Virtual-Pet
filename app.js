@@ -12,6 +12,11 @@ const AR_PET_HEIGHT_METERS = 0.10; // altura-alvo: 10 cm no mundo AR
 let AR_PET_SCALE = 0.05; // recalculada pela caixa real do modelo depois da criação
 let placeButton, repositionButton, followAimButton, surfaceFound = false, repositioning = false;
 let cameraFollowMode = false;
+let roamingMode = false;
+let roamOrigin = new THREE.Vector3();
+let roamTarget = new THREE.Vector3();
+let roamNextTargetAt = 0;
+let roamLastTime = 0;
 let lastFloorMatrix = new THREE.Matrix4();
 let hasLastFloorMatrix = false;
 let anchoredPosition = new THREE.Vector3();
@@ -273,6 +278,7 @@ function init3D(){
     repositioning=false;
     surfaceFound=false;
     cameraFollowMode=false;
+    roamingMode=false;
     hasLastFloorMatrix=false;
     pet.visible=false;
     reticle.visible=false;
@@ -291,7 +297,7 @@ function init3D(){
       $('#game').classList.remove('immersive-ar');
       document.body.classList.remove('immersive-ar-active');
       floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);
-      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;cameraFollowMode=false;hasLastFloorMatrix=false;
+      reticle.visible=false;hitTestSource=null;hitTestSourceRequested=false;placed=false;repositioning=false;surfaceFound=false;cameraFollowMode=false;roamingMode=false;hasLastFloorMatrix=false;
       if(placeButton)placeButton.classList.add('hidden');
       if(repositionButton)repositionButton.classList.add('hidden');
       if(followAimButton)followAimButton.classList.add('hidden');
@@ -347,6 +353,8 @@ function placePet(){
   pet.visible = true;
   pet.updateMatrixWorld(true);
   placed = true;
+  cameraFollowMode = false;
+  roamingMode = false;
   captureAnchoredPose();
   repositioning = false;
   reticle.visible = false;
@@ -360,12 +368,29 @@ function placePet(){
 
 function toggleCameraFollowMode(){
   if(!renderer?.xr.isPresenting || !pet || !placed)return;
-  if(!cameraFollowMode){
+  // Cycle through anchored, aim-follow, and free-roaming behaviors.
+  if(!cameraFollowMode && !roamingMode){
     cameraFollowMode=true;
+    roamingMode=false;
     hasLastFloorMatrix=false;
+    if(activeXRAnchor && activeXRAnchor.delete){try{activeXRAnchor.delete();}catch{}}
+    activeXRAnchor=null;
     pet.visible=true;
     toast('🎯 Modo Seguir mira ativado — aponte onde quiser');
+  }else if(cameraFollowMode){
+    cameraFollowMode=false;
+    roamingMode=true;
+    if(activeXRAnchor && activeXRAnchor.delete){try{activeXRAnchor.delete();}catch{}}
+    activeXRAnchor=null;
+    roamOrigin.copy(pet.position);
+    roamTarget.copy(pet.position);
+    roamNextTargetAt=0;
+    roamLastTime=clock.getElapsedTime();
+    pet.visible=true;
+    captureAnchoredPose();
+    toast('🦜 Modo Livre ativado — Pisco vai explorar, andar e voar!');
   }else{
+    roamingMode=false;
     cameraFollowMode=false;
     const xrCamera=renderer.xr.getCamera(camera);
     const viewCamera=xrCamera.cameras?.[0] || xrCamera;
@@ -380,16 +405,50 @@ function toggleCameraFollowMode(){
       pet.visible=true;
       pet.updateMatrixWorld(true);
       captureAnchoredPose();
-      toast('🐾 Pet encaixado na superfície detectada!');
+      toast('🐾 Pisco pousou na superfície detectada!');
     }else{
       captureAnchoredPose();
-      toast('⚓ Modo Ancorado ativado — o pet ficou neste local');
+      toast('⚓ Modo Ancorado ativado — Pisco ficará neste local');
     }
   }
   if(followAimButton){
-    followAimButton.textContent=cameraFollowMode?'🎯 Modo: Seguir mira':'⚓ Modo: Ancorado';
-    followAimButton.setAttribute('aria-pressed',String(cameraFollowMode));
+    followAimButton.textContent=roamingMode?'🦜 Modo: Livre':cameraFollowMode?'🎯 Modo: Seguir mira':'⚓ Modo: Ancorado';
+    followAimButton.setAttribute('aria-pressed',String(cameraFollowMode || roamingMode));
   }
+}
+
+function updateRoaming(s){
+  if(!pet || !roamingMode)return;
+  const dt=Math.min(.05,Math.max(0,s-roamLastTime));
+  roamLastTime=s;
+  if(s>=roamNextTargetAt){
+    const angle=Math.random()*Math.PI*2;
+    const radius=.25+Math.random()*1.25;
+    const flying=Math.random()<.62;
+    roamTarget.set(
+      roamOrigin.x+Math.cos(angle)*radius,
+      roamOrigin.y+(flying ? .22+Math.random()*.62 : .012),
+      roamOrigin.z+Math.sin(angle)*radius
+    );
+    roamNextTargetAt=s+2.0+Math.random()*3.4;
+    pet.userData.roamFlying=flying;
+  }
+  const dx=roamTarget.x-pet.position.x;
+  const dy=roamTarget.y-pet.position.y;
+  const dz=roamTarget.z-pet.position.z;
+  const distance=Math.sqrt(dx*dx+dy*dy+dz*dz);
+  const speed=pet.userData.roamFlying ? .42 : .22;
+  if(distance>.012){
+    const step=Math.min(1,(speed*dt)/distance);
+    pet.position.x+=dx*step;
+    pet.position.y+=dy*step;
+    pet.position.z+=dz*step;
+    const desiredYaw=Math.atan2(dx,dz);
+    const yawDelta=((desiredYaw-pet.rotation.y+Math.PI*3)%(Math.PI*2))-Math.PI;
+    pet.rotation.y+=yawDelta*Math.min(1,dt*4.5);
+  }
+  pet.visible=true;
+  pet.updateMatrixWorld(true);
 }
 function repositionPet(){
   if(!renderer?.xr.isPresenting || !pet)return;
@@ -407,6 +466,7 @@ function repositionPet(){
   // Keep the pet along the actual viewing ray. Flattening the direction made it
   // leave the camera view when the phone was pointed down at the floor.
   cameraFollowMode=false;
+  roamingMode=false;
   pet.position.copy(cameraPosition).addScaledVector(cameraDirection,0.72);
   pet.position.y=Math.max(0.06,pet.position.y-0.04);
   pet.scale.setScalar(AR_PET_SCALE);
@@ -557,7 +617,8 @@ function render(time,frame){
     if(!placed)pet.position.y=basePetY+Math.sin(s*2.1)*.018;
     if(!cameraFollowMode && !placed)pet.rotation.y=Math.sin(s*.45)*.08;
   }
-  if(pet && placed && !cameraFollowMode){
+  if(pet && placed && roamingMode) updateRoaming(s);
+  if(pet && placed && !cameraFollowMode && !roamingMode){
     const ref=renderer.xr.isPresenting ? renderer.xr.getReferenceSpace() : null;
     const anchored=renderer.xr.isPresenting && frame ? updateSurfaceAnchor(frame,ref) : false;
     if(!anchored)restoreAnchoredPose();
