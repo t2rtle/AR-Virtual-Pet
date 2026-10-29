@@ -523,27 +523,57 @@ function stopHandTracking(){
 }
 async function startHandCameraOverlay(){
   if(!handFollowMode)return;
-  init3D();
-  $('#game').classList.remove('hidden');
-  $('#game').classList.add('hand-camera-mode');
-  floor.visible=false;
-  pet.visible=true;
-  pet.position.set(0,.05,-.55);
-  pet.rotation.set(0,0,0);
-  placed=true;
-  const ok=await startHandTracking();
-  if(!ok){
+  try{
+    init3D();
+    const game=$('#game');
+    game.classList.remove('hidden');
+    game.classList.add('hand-camera-mode');
+    // Reduce GPU load before starting MediaPipe on lower-memory phones.
+    renderer.setPixelRatio(1);
+    renderer.setSize(innerWidth,innerHeight,false);
+    renderer.setClearColor(0x000000,0);
+    renderer.setClearAlpha(0);
+    renderer.domElement.style.background='transparent';
+    renderer.domElement.style.opacity='1';
+    floor.visible=false;
+    pet.visible=true;
+    pet.position.set(0,.05,-.55);
+    pet.rotation.set(0,0,0);
+    pet.scale.setScalar(AR_PET_SCALE);
+    placed=true;
+    if(followAimButton){followAimButton.classList.remove('hidden');followAimButton.textContent='⚓ Sair do modo Mão';}
+    const ok=await startHandTracking();
+    if(!ok){
+      handFollowMode=false;
+      game.classList.remove('hand-camera-mode');
+      floor.visible=true;
+      pet.visible=true;
+      pet.position.set(0,basePetY,0);
+      placed=false;
+      if(followAimButton)followAimButton.classList.add('hidden');
+      updateFollowButton();
+      toast('O modo Mão não conseguiu abrir a câmera. O convés 3D foi restaurado.');
+    }else updateFollowButton();
+  }catch(err){
+    console.error('Falha ao iniciar modo Mão:',err);
+    stopHandTracking();
     handFollowMode=false;
-    $('#game').classList.remove('hand-camera-mode');
+    handCameraPending=false;
+    $('#game')?.classList.remove('hand-camera-mode');
+    if(floor)floor.visible=true;
+    if(pet){pet.visible=true;pet.position.set(0,basePetY,0);placed=false;}
+    if(followAimButton)followAimButton.classList.add('hidden');
     updateFollowButton();
-    toast('O modo Mão não conseguiu abrir a câmera.');
-  }else updateFollowButton();
+    toast('⚠️ O modo Mão falhou ao iniciar; o convés 3D foi restaurado.');
+  }
 }
 function updateHandTracking(s){
   if(!handFollowMode || !handLandmarker || !handVideo || handVideo.readyState<2 || handTrackingBusy)return;
+  const now=performance.now();
+  // Limit inference frequency to protect mobile CPU/GPU and avoid overlapping frames.
+  if(now-handLastUpdateAt<85)return;
   handTrackingBusy=true;
   try{
-    const now=performance.now();
     const result=handLandmarker.detectForVideo(handVideo,now);
     const landmarks=result?.landmarks?.[0];
     if(landmarks && landmarks.length>=21){
