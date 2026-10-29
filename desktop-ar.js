@@ -21,6 +21,8 @@ let pitch = 0;
 let desktopMoveMode = false;
 
 const $ = s => document.querySelector(s);
+let petDisplayName = (() => { try { return JSON.parse(localStorage.getItem('mochiPirateSaveV1') || '{}').name || 'Pisco'; } catch { return 'Pisco'; } })();
+window.addEventListener('petnamechange', event => { if(event.detail) petDisplayName = event.detail; });
 
 function toast(message){
   const el = $('#toast');
@@ -178,8 +180,8 @@ function updateDesktopModeButton(){
   button.textContent=desktopMoveMode?'🎯 Modo: Mover':'⚓ Modo: Fixo';
   button.setAttribute('aria-pressed',String(desktopMoveMode));
   button.title=desktopMoveMode
-    ? 'Arraste Mochi com o mouse e use a roda para redimensionar.'
-    : 'Mochi está fixo. Ative Modo: Mover para reposicioná-lo com o mouse.';
+    ? `Arraste ${petDisplayName} com o mouse e use a roda para redimensionar.`
+    : `${petDisplayName} está fixo. Ative Modo: Mover para reposicioná-lo com o mouse.`;
 }
 
 function toggleDesktopMoveMode(){
@@ -189,7 +191,7 @@ function toggleDesktopMoveMode(){
   updateDesktopModeButton();
   toast(desktopMoveMode
     ? '🎯 Modo Mover ativado — arraste Mochi com o mouse.'
-    : '⚓ Modo Fixo ativado — Mochi ficará neste ponto.');
+    : `⚓ Modo Fixo ativado — ${petDisplayName} ficará neste ponto.`);
 }
 
 function installControls(){
@@ -228,7 +230,7 @@ function installControls(){
     yaw=0;
     pitch=0;
     pet.rotation.set(0,0,0);
-    toast('🧭 Mochi voltou para o centro da câmera.');
+    toast(`🧭 ${petDisplayName} voltou para o centro da câmera.`);
   };
   $('#followAimBtn').onclick=toggleDesktopMoveMode;
 }
