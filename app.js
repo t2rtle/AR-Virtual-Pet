@@ -647,16 +647,19 @@ function render(time,frame){
   renderer.render(scene,camera);
 }
 async function startAR(){
-  init3D();
-  $('#home').classList.add('hidden');$('#game').classList.remove('hidden');
-  $('#arFallback').classList.add('hidden');
+  const status=$('#statusText');
+  const fallback=$('#arFallback');
   try{
-    if(!navigator.xr)throw Error('WebXR não existe neste navegador');
-    if(!await navigator.xr.isSessionSupported('immersive-ar'))throw Error('AR imersivo não suportado');
+    // Create the renderer and the complete procedural parrot before changing screens.
+    // A WebGL/Three.js initialization failure must be reported instead of leaving a blank game.
+    init3D();
+    if(!navigator.xr) throw new Error('Este navegador não disponibiliza WebXR para AR.');
+    const supported=await navigator.xr.isSessionSupported('immersive-ar');
+    if(!supported) throw new Error('Este dispositivo/navegador não oferece suporte a AR imersiva.');
+    $('#home').classList.add('hidden');
+    $('#game').classList.remove('hidden');
+    fallback.classList.add('hidden');
     if(!arButton){
-      // Do not make hit-test mandatory: some compatible mobile AR sessions
-      // can start without surface detection, and render() already has a safe
-      // camera-forward placement fallback for those devices.
       arButton=ARButton.createButton(renderer,{
         optionalFeatures:['hit-test','dom-overlay','local-floor','anchors','camera-access'],
         domOverlay:{root:document.body}
@@ -666,20 +669,21 @@ async function startAR(){
       arButton.setAttribute('aria-label','Iniciar sessão de realidade aumentada');
       document.body.appendChild(arButton);
     }
+    status.textContent='Pronto para iniciar AR';
     toast('⚓ Toque no botão dourado para abrir o portal dos Sete Mares');
-    $('#statusText').textContent='Pronto para iniciar AR';
-  }catch(e){
-    console.warn(e);
-    $('#arFallback').classList.remove('hidden');
-    toast('AR indisponível neste navegador — use o modo de teste 3D');
+  }catch(error){
+    console.error('Falha ao preparar AR/Pisco:',error);
+    if(renderer && !renderer.xr.isPresenting){
+      $('#game').classList.add('hidden');
+      $('#home').classList.remove('hidden');
+    }
+    const message=error?.message || 'Falha desconhecida ao preparar a realidade aumentada.';
+    status.textContent='AR indisponível: verifique o navegador, a câmera e os serviços de realidade aumentada.';
+    fallback.classList.remove('hidden');
+    fallback.querySelector('strong').textContent='🧭 Não foi possível iniciar a realidade aumentada';
+    fallback.querySelector('span').textContent=message+' Abra o site em HTTPS, permita a câmera e use um dispositivo/navegador compatível com AR.';
+    toast('Não foi possível iniciar a realidade aumentada.');
   }
-}
-function preview(){
-  init3D();$('#home').classList.add('hidden');$('#game').classList.remove('hidden');
-  $('#game').classList.remove('immersive-ar');document.body.classList.remove('immersive-ar-active');$('#arFallback').classList.remove('hidden');
-  setHudMode('normal');
-  floor.visible=true;pet.visible=true;pet.scale.setScalar(AR_PET_SCALE * 3.05);pet.position.set(0,basePetY,0);placed=false;
-  toast('Modo de teste 3D iniciado');
 }
 function action(type){
   tone();vibrate();
@@ -691,9 +695,7 @@ function action(type){
 }
 
 window.__piscoStartAR = startAR;
-window.__piscoPreview = preview;
 $('#startBtn').onclick=startAR;
-$('#previewBtn').onclick=preview;
 $('#hudModeBtn').onclick=cycleHudMode;
 $('#exitBtn').onclick=()=>{if(renderer?.xr.isPresenting)renderer.xr.getSession()?.end();$('#game').classList.add('hidden');$('#home').classList.remove('hidden');};
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>action(b.dataset.action));
