@@ -247,7 +247,7 @@ function init3D(){
   camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.01,100);
   camera.position.set(0,.65,1.8);
   renderer=new THREE.WebGLRenderer({canvas:$('#scene'),antialias:true,alpha:true,premultipliedAlpha:false,powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
   renderer.setSize(innerWidth,innerHeight);
   renderer.setClearColor(0x000000,0);
   renderer.setClearAlpha(0);
@@ -467,7 +467,7 @@ async function startHandTracking(){
     const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
     const fileset=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
     handLandmarker=await vision.HandLandmarker.createFromOptions(fileset,{
-      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},
+      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'CPU'},
       runningMode:'VIDEO',numHands:1,
       minHandDetectionConfidence:.55,minHandPresenceConfidence:.5,minTrackingConfidence:.5
     });
@@ -475,7 +475,7 @@ async function startHandTracking(){
     handVideo.setAttribute('playsinline',''); handVideo.muted=true; handVideo.autoplay=true;
     handVideo.style.cssText='position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;left:-10px;top:-10px';
     $('#game').appendChild(handVideo);
-    handStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'environment',width:{ideal:640},height:{ideal:480}}});
+    handStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'environment',width:{ideal:320},height:{ideal:240},frameRate:{ideal:20,max:24}}});
     handVideo.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;object-fit:cover;opacity:1;pointer-events:none;z-index:0;background:#000';
     handVideo.srcObject=handStream;
     await handVideo.play();
@@ -489,7 +489,7 @@ async function startHandTracking(){
     placed=true;
     if(repositionButton)repositionButton.classList.remove('hidden');
     if(followAimButton){followAimButton.classList.remove('hidden');followAimButton.textContent='⚓ Sair do modo Mão';}
-    handCanvas=document.createElement('canvas'); handCanvas.width=640; handCanvas.height=480;
+    handCanvas=document.createElement('canvas'); handCanvas.width=320; handCanvas.height=240;
     handCanvasContext=handCanvas.getContext('2d',{willReadFrequently:false});
     lastHandSeenAt=performance.now(); handLastUpdateAt=lastHandSeenAt; handTargetValid=false; handTrackingBusy=false;
     toast('✋ Mostre a palma — Pisco acompanhará sua mão na prévia da câmera');
