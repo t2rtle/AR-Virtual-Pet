@@ -88,9 +88,9 @@ function installIdle(group) {
   }
   renameFlightUI();
 
-  body.onBeforeRender = () => {
+  group.userData.updateAnimation = (timeSeconds) => {
     try {
-      const t = performance.now() * .001;
+      const t = (Number.isFinite(timeSeconds) ? timeSeconds : performance.now() * .001) * 0.82;
       if (t >= nextSpecial && t >= specialUntil && !reactionUntil) triggerSpecial(t);
 
       const reaction = t < reactionUntil;
@@ -98,8 +98,8 @@ function installIdle(group) {
       const flying = !!group.userData.roamFlying;
       const flight = flying || (reactionType === 'play' && reaction);
       const flightStrength = flying ? 1 : (reactionType === 'play' && reaction ? .82 : 0);
-      const bodyBob = Math.sin(t * Math.PI * 2.2);
-      const bodySway = Math.sin(t * Math.PI * 1.25);
+      const bodyBob = Math.sin(t * Math.PI * 1.55);
+      const bodySway = Math.sin(t * Math.PI * 0.9);
       const flightBob = flight ? Math.sin(t * 8.5) * .028 * flightStrength : 0;
       const flightTilt = flight ? Math.sin(t * 5.7) * .10 * flightStrength : 0;
 
@@ -117,7 +117,7 @@ function installIdle(group) {
       headDeltaX += nod + sleepyNod;
 
       if (reaction) {
-        headDeltaZ += Math.sin(t * (reactionType === 'play' ? 11 : 8)) * (reactionType === 'play' ? .10 : .055);
+        headDeltaZ += Math.sin(t * (reactionType === 'play' ? 7.2 : 5.4)) * (reactionType === 'play' ? .065 : .038);
         if (reactionType === 'pet') headDeltaX -= .07;
         if (reactionType === 'feed') headDeltaX += .045;
         if (reactionType === 'clean') headDeltaZ += Math.sin(t * 13) * .08;
@@ -164,7 +164,7 @@ function installIdle(group) {
       eyes.forEach(eye => { const b = base.get(eye); eye.scale.y = b.scale.y * (1 - blink * .92); });
       sparkles.forEach(sparkle => { const b = base.get(sparkle); sparkle.scale.y = b.scale.y * (1 - blink * .9); });
 
-      const cycleSpeed = flight ? 10.5 : (reaction ? 8.0 : 4.6);
+      const cycleSpeed = flight ? 8.2 : (reaction ? 6.4 : 3.6);
       const cycle = t * cycleSpeed;
       const wave = Math.sin(cycle);
       const wingAmplitude = flight ? 1 : (reaction ? 1 : .12);
@@ -175,7 +175,7 @@ function installIdle(group) {
         const b = base.get(wing);
         const side = wing.position.x < 0 ? -1 : 1;
         const w = Math.sin(cycle + i * .10);
-        wing.rotation.z = b.rotation.z + side * w * (.64 * wingAmplitude);
+        wing.rotation.z = b.rotation.z + side * w * (.48 * wingAmplitude);
         wing.rotation.x = b.rotation.x + Math.sin(cycle - .45) * .13 * wingAmplitude;
         wing.position.y = b.position.y + bodyBob * .010 + lift * (flight ? .034 : .020);
         wing.position.z = b.position.z + down * (flight ? .022 : .012);
@@ -185,7 +185,7 @@ function installIdle(group) {
         const side = feather.position.x < 0 ? -1 : 1;
         const phase = (i % 4) * .15 + Math.floor(i / 4) * .05;
         const w = Math.sin(cycle + phase);
-        feather.rotation.z = b.rotation.z + side * w * (.22 + (i % 3) * .022) * wingAmplitude;
+        feather.rotation.z = b.rotation.z + side * w * (.16 + (i % 3) * .018) * wingAmplitude;
         feather.rotation.x = b.rotation.x + Math.sin(cycle + phase + .5) * .08 * wingAmplitude;
         feather.position.y = b.position.y + bodyBob * .010 + Math.max(0, w) * (flight ? .020 : .014);
       });
