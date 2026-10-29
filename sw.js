@@ -1,4 +1,4 @@
-const CACHE='ar-pet-v61';
+const CACHE='ar-pet-v62';
 const CORE=['./','./index.html','./styles.css','./responsive.css','./pirate-gameplay.css','./app.js','./idle-animation.js','./pirate-gameplay.js','./desktop-ar.js','./manifest.json'];
 
 self.addEventListener('install',event=>event.waitUntil(
