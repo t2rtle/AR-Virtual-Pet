@@ -279,6 +279,11 @@ function init3D(){
   pet.userData.targetHeightMeters = AR_PET_HEIGHT_METERS;
   pet.position.set(0,basePetY,0);
   scene.add(pet);
+  // Install the optional rig only after its module is definitely available; AR does not depend on it.
+  if(typeof window.installPiscoAnimations==='function'){
+    try{window.installPiscoAnimations(pet);}
+    catch(err){console.warn('Animações do Pisco indisponíveis; mantendo o modelo funcional:',err);}
+  }
   // Invisible placement anchor: keeps the detected surface transform without drawing the old purple ring.
   reticle=new THREE.Object3D();
   reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
@@ -527,7 +532,21 @@ function repositionPet(){
   pet.scale.setScalar(AR_PET_SCALE);
   pet.rotation.set(0,0,0);
   pet.rotation.y=Math.atan2(cameraPosition.x-pet.position.x,cameraPosition.z-pet.position.z);
-  pet.traverse(node=>{if(node.isMesh){node.visible=true;node.frustumCulled=false;}});
+  pet.traverse(node=>{
+    node.visible=true;
+    if(node.isMesh){
+      node.frustumCulled=false;
+      node.layers.enable(0);
+      if(node.material){
+        node.material.visible=true;
+        node.material.opacity=1;
+        node.material.transparent=false;
+        node.material.needsUpdate=true;
+      }
+    }
+  });
+  // Ensure the generated model remains attached to the active scene and cannot be hidden by stale state.
+  if(pet.parent!==scene)scene.add(pet);
   pet.visible=true;
   pet.updateMatrixWorld(true);
   placed=true;
@@ -670,8 +689,16 @@ function render(time,frame){
   }
   // A placed pet must never silently revert to an invisible parent/mesh state.
   if(pet && placed){
+    if(pet.parent!==scene)scene.add(pet);
     pet.visible=true;
-    pet.traverse(node=>{ if(node.isMesh){ node.visible=true; node.frustumCulled=false; } });
+    pet.traverse(node=>{
+      node.visible=true;
+      if(node.isMesh){
+        node.frustumCulled=false;
+        node.layers.enable(0);
+        if(node.material){node.material.visible=true;}
+      }
+    });
     pet.updateMatrixWorld(true);
   }
   if(pet && pet.visible){
@@ -690,6 +717,9 @@ async function startAR(){
   const status=$('#statusText');
   const fallback=$('#arFallback');
   try{
+    // Load the optional animation module before constructing Pisco so script timing cannot skip the rig.
+    // A missing animation module must never block the AR pet itself.
+    try{await import('./idle-animation.js');}catch(animationError){console.warn('Animações opcionais não carregadas:',animationError);}
     // Create the renderer and the complete procedural parrot before changing screens.
     // A WebGL/Three.js initialization failure must be reported instead of leaving a blank game.
     init3D();
