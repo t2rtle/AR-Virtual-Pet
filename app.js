@@ -60,6 +60,23 @@ function decay(){ const h=Math.min(24,Math.max(0,(Date.now()-state.last)/3600000
 function updateUI(){ ['hunger','mood','energy','clean'].forEach(k=>{ $('#'+k+'Value').textContent=Math.round(state[k]); const bar=$('#'+k+'Value').parentElement.querySelector('.statTrack i'); if(bar)bar.style.width=Math.max(0,Math.min(100,state[k]))+'%'; }); $('#statusText').textContent=`${state.name} está a postos, marujo!`; }
 function vibrate(ms=20){ if(state.vibration && navigator.vibrate) navigator.vibrate(ms); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2400); }
+let hudMode = 'normal';
+function setHudMode(mode){
+  hudMode = mode;
+  const game = $('#game');
+  game.classList.toggle('hud-compact', mode === 'compact');
+  game.classList.toggle('hud-hidden', mode === 'hidden');
+  const button = $('#hudModeBtn');
+  if(button){
+    button.textContent = mode === 'normal' ? '☰ Interface: Normal' : mode === 'compact' ? '↘ Interface: Compacta' : '☰ Mostrar interface';
+    button.setAttribute('aria-pressed', String(mode !== 'normal'));
+    button.setAttribute('aria-label', mode === 'normal' ? 'Diminuir ou ocultar interface' : mode === 'compact' ? 'Ocultar ou restaurar interface' : 'Mostrar interface');
+  }
+}
+function cycleHudMode(){
+  setHudMode(hudMode === 'normal' ? 'compact' : hudMode === 'compact' ? 'hidden' : 'normal');
+  vibrate(12);
+}
 function tone(){ if(!state.sound)return; try{const C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=520;g.gain.setValueAtTime(.035,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.12);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.12);o.onended=()=>c.close();}catch{} }
 
 function createPet(){
@@ -267,6 +284,7 @@ function init3D(){
   followAimButton?.addEventListener('click',toggleCameraFollowMode);
   renderer.xr.addEventListener('sessionstart',()=>{
     $('#game').classList.add('immersive-ar');
+    setHudMode('normal');
     document.body.classList.add('immersive-ar-active');
     // Reassert a fully transparent WebGL surface for the AR camera passthrough.
     renderer.setClearColor(0x000000,0);
@@ -658,7 +676,8 @@ async function startAR(){
 function preview(){
   init3D();$('#home').classList.add('hidden');$('#game').classList.remove('hidden');
   $('#game').classList.remove('immersive-ar');document.body.classList.remove('immersive-ar-active');$('#arFallback').classList.remove('hidden');
-  floor.visible=true;pet.visible=true;pet.position.set(0,basePetY,0);placed=false;
+  setHudMode('normal');
+  floor.visible=true;pet.visible=true;pet.scale.setScalar(AR_PET_SCALE * 2.15);pet.position.set(0,basePetY,0);placed=false;
   toast('Modo de teste 3D iniciado');
 }
 function action(type){
@@ -674,6 +693,7 @@ window.__piscoStartAR = startAR;
 window.__piscoPreview = preview;
 $('#startBtn').onclick=startAR;
 $('#previewBtn').onclick=preview;
+$('#hudModeBtn').onclick=cycleHudMode;
 $('#exitBtn').onclick=()=>{if(renderer?.xr.isPresenting)renderer.xr.getSession()?.end();$('#game').classList.add('hidden');$('#home').classList.remove('hidden');};
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>action(b.dataset.action));
 $('#settingsBtn').onclick=()=>$('#settings').classList.remove('hidden');
