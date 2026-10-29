@@ -449,59 +449,91 @@ function updateFollowButton(){
 }
 async function startHandTracking(){
   if(handModeStarting)return false;
-  // WebXR owns the camera on many mobile browsers. Release it before requesting a stream.
+  // WebXR must release the camera before the normal camera stream can be opened.
+  // Keep this transition tiny: loading MediaPipe while WebXR is shutting down can
+  // stall or terminate mobile browsers before the user ever sees the preview.
   if(renderer?.xr.isPresenting){
     handCameraPending=true;
-    toast('📷 Mudando para o modo Mão pela câmera…');
-    try{await renderer.xr.getSession()?.end();return true;}
-    catch(err){handCameraPending=false;console.warn('Não foi possível trocar do AR para a câmera:',err);toast('Não foi possível iniciar o modo Mão.');return false;}
+    toast('📷 Mudando para a câmera do modo Mão…');
+    try{ await renderer.xr.getSession()?.end(); return true; }
+    catch(err){
+      handCameraPending=false;
+      console.warn('Não foi possível trocar do AR para a câmera:',err);
+      toast('Não foi possível iniciar o modo Mão.');
+      return false;
+    }
   }
   handModeStarting=true;
   try{
-    // WebXR já controla a câmera traseira durante immersive-ar. Abrir outro
-    // getUserMedia aqui falha em Android/Samsung Browser/Chrome e pode deixar
-    // o reconhecimento preso. Não tentamos mais abrir uma segunda câmera.
-    if(renderer?.xr?.isPresenting){
-      throw new Error('A sessão AR já está usando a câmera. Este navegador não fornece um fluxo de imagem da câmera AR compatível com o rastreador de mãos.');
-    }
     if(!navigator.mediaDevices?.getUserMedia)throw new Error('Este navegador não permite acessar a câmera para reconhecer a mão.');
-    const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
-    const fileset=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
-    handLandmarker=await vision.HandLandmarker.createFromOptions(fileset,{
-      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'CPU'},
-      runningMode:'VIDEO',numHands:1,
-      minHandDetectionConfidence:.55,minHandPresenceConfidence:.5,minTrackingConfidence:.5
-    });
+
+    // Open and show the camera FIRST. If the model download fails, the user still
+    // gets a visible camera preview and a recoverable error instead of a blank page.
     handVideo=document.createElement('video');
-    handVideo.setAttribute('playsinline',''); handVideo.muted=true; handVideo.autoplay=true;
-    handVideo.style.cssText='position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;left:-10px;top:-10px';
+    handVideo.setAttribute('playsinline','');
+    handVideo.setAttribute('webkit-playsinline','');
+    handVideo.muted=true;
+    handVideo.autoplay=true;
+    handVideo.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;object-fit:cover;opacity:0;pointer-events:none;z-index:0;background:#000';
     $('#game').appendChild(handVideo);
-    handStream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'environment',width:{ideal:320},height:{ideal:240},frameRate:{ideal:20,max:24}}});
-    handVideo.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;object-fit:cover;opacity:1;pointer-events:none;z-index:0;background:#000';
+    handStream=await navigator.mediaDevices.getUserMedia({
+      audio:false,
+      video:{facingMode:{ideal:'environment'},width:{ideal:320,max:640},height:{ideal:240,max:480},frameRate:{ideal:15,max:20}}
+    });
     handVideo.srcObject=handStream;
     await handVideo.play();
     $('#game').classList.add('hand-camera-mode');
     $('#scene').style.zIndex='1';
     $('#scene').style.pointerEvents='none';
     handCameraModeActive=true;
+    handVideo.style.opacity='1';
+    if(followAimButton){followAimButton.classList.remove('hidden');followAimButton.textContent='⚓ Sair do modo Mão';}
+    if(repositionButton)repositionButton.classList.remove('hidden');
+    toast('📷 Câmera ativa — carregando reconhecimento da mão…');
+
+    // Load computer-vision assets only after the camera is already visible.
+    const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
+    const fileset=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
+    handLandmarker=await vision.HandLandmarker.createFromOptions(fileset,{
+      baseOptions:{
+        modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float32/1/hand_landmarker.task',
+        delegate:'CPU'
+      },
+      runningMode:'VIDEO',
+      numHands:1,
+      minHandDetectionConfidence:.55,
+      minHandPresenceConfidence:.5,
+      minTrackingConfidence:.5
+    });
     pet.position.set(0,.05,-.55);
     pet.rotation.set(0,0,0);
     pet.visible=true;
     placed=true;
-    if(repositionButton)repositionButton.classList.remove('hidden');
-    if(followAimButton){followAimButton.classList.remove('hidden');followAimButton.textContent='⚓ Sair do modo Mão';}
-    handCanvas=document.createElement('canvas'); handCanvas.width=320; handCanvas.height=240;
+    handCanvas=document.createElement('canvas');
+    handCanvas.width=160;
+    handCanvas.height=120;
     handCanvasContext=handCanvas.getContext('2d',{willReadFrequently:false});
-    lastHandSeenAt=performance.now(); handLastUpdateAt=lastHandSeenAt; handTargetValid=false; handTrackingBusy=false;
-    toast('✋ Mostre a palma — Pisco acompanhará sua mão na prévia da câmera');
+    lastHandSeenAt=performance.now();
+    handLastUpdateAt=lastHandSeenAt;
+    lastHandInferenceAt=0;
+    handTargetValid=false;
+    handTrackingBusy=false;
+    toast('✋ Mostre a palma — Pisco acompanhará sua mão');
     return true;
   }catch(err){
     console.warn('Reconhecimento de mão indisponível:',err);
     stopHandTracking();
-    const msg=renderer?.xr?.isPresenting
-      ? '⚠️ O modo Mão precisa de acesso aos frames da câmera AR, que este navegador não disponibiliza ao rastreador. Voltei ao modo Ancorado; use “Seguir mira” ou “Modo Livre”.'
-      : '⚠️ Não consegui acessar a câmera para reconhecer a mão. Verifique a permissão de câmera.';
+    const game=$('#game');
+    game?.classList.remove('hand-camera-mode');
+    if($('#scene')){$('#scene').style.zIndex='0';$('#scene').style.pointerEvents='none';}
+    if(floor)floor.visible=true;
+    if(pet){pet.visible=true;pet.position.set(0,basePetY,0);placed=false;}
+    handFollowMode=false;
+    const msg=err?.name==='NotAllowedError'
+      ? '⚠️ Permita o acesso à câmera para usar o modo Mão.'
+      : '⚠️ O modo Mão não iniciou. O convés foi restaurado; tente novamente.';
     toast(msg);
+    updateFollowButton();
     return false;
   }finally{handModeStarting=false;}
 }
